@@ -705,20 +705,42 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
+// Helper function to decode URL-safe base64
+function decodeUrlSafeBase64(str) {
+    // Convert URL-safe base64 to standard base64
+    let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    // Add padding if needed
+    while(base64.length % 4){
+        base64 += '=';
+    }
+    return atob(base64);
+}
 function ServicesPage() {
     _s();
     const searchParams = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"])();
     const [branchId, setBranchId] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [payloadData, setPayloadData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "ServicesPage.useEffect": ()=>{
             const payload = searchParams.get('payload');
             if (payload) {
                 try {
-                    // Decode JWT or parse payload to get branchId
-                    const decoded = JSON.parse(atob(payload.split('.')[1]));
-                    setBranchId(decoded.branchId);
+                    // Decode URL-safe base64 payload from Django backend
+                    const decoded = decodeUrlSafeBase64(payload);
+                    const data = JSON.parse(decoded);
+                    console.log('✅ Successfully decoded payload:', data);
+                    // Store the full payload data
+                    setPayloadData(data);
+                    setBranchId(data.branch.id);
+                    // Optional: Store token and device fingerprint for API calls
+                    if ("TURBOPACK compile-time truthy", 1) {
+                        sessionStorage.setItem('proxy_token', data.token);
+                        sessionStorage.setItem('device_fingerprint', data.device_fingerprint);
+                        sessionStorage.setItem('endpoints', JSON.stringify(data.endpoints));
+                    }
                 } catch (error) {
                     console.error("[v0] Failed to parse payload:", error);
+                    console.error("Raw payload:", payload);
                 }
             }
         }
@@ -736,7 +758,7 @@ function ServicesPage() {
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$header$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Header"], {}, void 0, false, {
                     fileName: "[project]/app/branch/services/page.tsx",
-                    lineNumber: 40,
+                    lineNumber: 83,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -746,32 +768,34 @@ function ServicesPage() {
                         children: "Invalid access link. Please use a valid QR code."
                     }, void 0, false, {
                         fileName: "[project]/app/branch/services/page.tsx",
-                        lineNumber: 42,
+                        lineNumber: 85,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/app/branch/services/page.tsx",
-                    lineNumber: 41,
+                    lineNumber: 84,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$footer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Footer"], {}, void 0, false, {
                     fileName: "[project]/app/branch/services/page.tsx",
-                    lineNumber: 44,
+                    lineNumber: 87,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/branch/services/page.tsx",
-            lineNumber: 39,
+            lineNumber: 82,
             columnNumber: 7
         }, this);
     }
+    // If payload includes services list, use it (avoids extra API call)
+    const servicesToDisplay = payloadData?.services || services;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
         className: "min-h-screen bg-gradient-to-br from-white via-green-50 to-white",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$header$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Header"], {}, void 0, false, {
                 fileName: "[project]/app/branch/services/page.tsx",
-                lineNumber: 51,
+                lineNumber: 97,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -782,10 +806,10 @@ function ServicesPage() {
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                                 className: "text-4xl font-bold text-foreground mb-2 text-balance",
-                                children: "Our Services"
+                                children: payloadData?.branch.name || 'Our Services'
                             }, void 0, false, {
                                 fileName: "[project]/app/branch/services/page.tsx",
-                                lineNumber: 55,
+                                lineNumber: 101,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -793,73 +817,73 @@ function ServicesPage() {
                                 children: "Explore our curated services"
                             }, void 0, false, {
                                 fileName: "[project]/app/branch/services/page.tsx",
-                                lineNumber: 56,
+                                lineNumber: 104,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/branch/services/page.tsx",
-                        lineNumber: 54,
+                        lineNumber: 100,
                         columnNumber: 9
                     }, this),
-                    isLoading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    isLoading && !payloadData?.services && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "text-center py-12",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                             className: "text-muted-foreground",
                             children: "Loading services..."
                         }, void 0, false, {
                             fileName: "[project]/app/branch/services/page.tsx",
-                            lineNumber: 61,
+                            lineNumber: 109,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/branch/services/page.tsx",
-                        lineNumber: 60,
+                        lineNumber: 108,
                         columnNumber: 11
                     }, this),
-                    error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    error && !payloadData?.services && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "text-center py-12",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                             className: "text-destructive",
                             children: "Failed to load services. Please try again."
                         }, void 0, false, {
                             fileName: "[project]/app/branch/services/page.tsx",
-                            lineNumber: 67,
+                            lineNumber: 115,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/branch/services/page.tsx",
-                        lineNumber: 66,
+                        lineNumber: 114,
                         columnNumber: 11
                     }, this),
-                    !isLoading && !error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$services$2d$grid$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ServicesGrid"], {
-                        services: services,
+                    servicesToDisplay.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$services$2d$grid$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["ServicesGrid"], {
+                        services: servicesToDisplay,
                         branchId: branchId,
                         hideLinks: false
                     }, void 0, false, {
                         fileName: "[project]/app/branch/services/page.tsx",
-                        lineNumber: 71,
-                        columnNumber: 34
+                        lineNumber: 120,
+                        columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/branch/services/page.tsx",
-                lineNumber: 53,
+                lineNumber: 99,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$footer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Footer"], {}, void 0, false, {
                 fileName: "[project]/app/branch/services/page.tsx",
-                lineNumber: 74,
+                lineNumber: 124,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/branch/services/page.tsx",
-        lineNumber: 50,
+        lineNumber: 96,
         columnNumber: 5
     }, this);
 }
-_s(ServicesPage, "MaZB5vEz1FsrDkc7KKZbrKJ+uYc=", false, function() {
+_s(ServicesPage, "9nUCGj6yHlJqx/gW/7Dz9UFy26E=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"],
         __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$api$2f$services$2d$api$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useGetServicesByBranchQuery"]
