@@ -1,22 +1,8 @@
 import { createApi } from "@reduxjs/toolkit/query/react"
 import { baseQuery } from "./base"
+import { Service } from "@/lib/types/interfaces"
+import { ApiResponse } from "@/lib/types/responseformat"
 
-export interface Service {
-  id: string
-  title: string
-  description: string
-  available: boolean
-  icon?: string
-  image?: string
-  slug?: string
-  type?: string
-}
-
-export interface ApiResponse<T> {
-  erc: number
-  msg: string
-  data: T
-}
 
 export const servicesApi = createApi({
   reducerPath: "servicesApi",

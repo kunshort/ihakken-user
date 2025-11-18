@@ -1,10 +1,82 @@
-import { RestaurantLayout } from "@/components/restaurant/layout"
 
-export const metadata = {
-  title: "Restaurant Menu - Serenity Hub",
-  description: "Explore our restaurant menu",
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { RestaurantLayout } from "@/components/restaurant/layout";
+
+interface DecodedPayload {
+  branch: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  services: Array<{
+    id: string;
+    name: string;
+    service_type: string;
+  }>;
+}
+
+function decodePayload(payload: string): DecodedPayload | null {
+  try {
+    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4) {
+      base64 += "=";
+    }
+    return JSON.parse(atob(base64));
+  } catch (e) {
+    console.error("Failed to decode payload:", e);
+    return null;
+  }
 }
 
 export default function RestaurantPage() {
-  return <RestaurantLayout />
+  const searchParams = useSearchParams();
+  const [payloadData, setPayloadData] = useState<DecodedPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const payload = searchParams.get("payload");
+
+    if (payload) {
+      const data = decodePayload(payload);
+      if (data) {
+        setPayloadData(data);
+        setError(null);
+      } else {
+        setError("Failed to decode payload. Please try again.");
+      }
+    } else {
+      setError("No payload found. Please select a service.");
+    }
+    setIsLoading(false);
+  }, [searchParams]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !payloadData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{error || "Unable to load restaurant"}</p>
+          <a
+            href="/"
+            className="text-primary hover:underline"
+          >
+            Go back to services
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return <RestaurantLayout branchId={payloadData.branch.id} />;
 }
