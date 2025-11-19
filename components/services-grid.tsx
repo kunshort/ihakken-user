@@ -1,96 +1,101 @@
-import Link from "next/link"
-import { Building2, UtensilsCrossed, Dumbbell, Waves } from 'lucide-react'
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Service } from "@/lib/api/services-api"
-import { useSearchParams } from 'next/navigation'
+"use client";
+
+import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Service } from "@/lib/types/interfaces";
 
 interface ServicesGridProps {
-  services: Service[]
-  branchId: string
-  hideLinks?: boolean
+  services: Service[];
+  branchId: string;
+  hideLinks?: boolean;
 }
 
-const serviceIcons: Record<string, React.ReactNode> = {
-  restaurant: <UtensilsCrossed className="w-6 h-6" />,
-  lodging: <Building2 className="w-6 h-6" />,
-  gym: <Dumbbell className="w-6 h-6" />,
-  pool: <Waves className="w-6 h-6" />,
-}
+export function ServicesGrid({
+  services,
+  branchId,
+  hideLinks = false,
+}: ServicesGridProps) {
+  const searchParams = useSearchParams();
+  const payload = searchParams.get("payload") || "";
 
-const serviceColors: Record<string, string> = {
-  restaurant: "from-orange-400 to-orange-600",
-  lodging: "from-blue-400 to-blue-600",
-  gym: "from-red-400 to-red-600",
-  pool: "from-cyan-400 to-cyan-600",
-}
+  // Function to generate the correct route based on service type
+  const getServiceRoute = (service: Service) => {
+    const serviceType = service.service_type.toLowerCase();
 
-export function ServicesGrid({ services, branchId, hideLinks = false }: ServicesGridProps) {
-  const searchParams = useSearchParams()
-  const payload = searchParams.get('payload') || ''
+    // Map service types to their routes
+    const routeMap: Record<string, string> = {
+      restaurant: `/branch/services/${service.id}/restaurant`,
+      lodging: `/branch/services/${service.id}/lodging`,
+      // Add more service types as needed
+    };
 
-  if (!services || services.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">No services available</p>
-      </div>
-    )
-  }
+    const route = routeMap[serviceType] || `/branch/services/${service.id}`;
+
+    // Append payload if it exists
+    return payload ? `${route}?payload=${payload}` : route;
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {services.map((service) => {
-        const slug = service.slug || service.id.toLowerCase()
-        const type = service.type || service.id.toLowerCase()
-        const Icon = serviceIcons[type] || Building2
-        const color = serviceColors[type] || "from-blue-400 to-blue-600"
-        const href = `/branch/services/${slug}${payload ? `?payload=${payload}` : ''}`
+        const CardWrapper = hideLinks ? "div" : Link;
+        const cardProps = hideLinks ? {} : { href: getServiceRoute(service) };
 
         return (
-          <Link key={service.id} href={href}>
-            <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group">
-              <div className="relative h-48 overflow-hidden bg-muted">
+          <CardWrapper key={service.id} {...cardProps}>
+            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer h-full">
+              <div className="relative h-48 overflow-hidden bg-linear-to-br from-teal-500 to-teal-700">
                 {service.image ? (
                   <img
-                    src={service.image || "/placeholder.svg"}
-                    alt={service.title}
+                    src={service.image}
+                    alt={service.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const img = e.target as HTMLImageElement
-                      img.src = `/placeholder.svg?height=192&width=400&query=${service.title}`
-                    }}
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                    <span className="text-muted-foreground">No image</span>
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-6xl text-white opacity-80">
+                      {service.icon || "🏢"}
+                    </span>
                   </div>
                 )}
-                <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-20`} />
+
+                {/* Service Type Badge */}
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-teal-700 capitalize">
+                    {service.service_type}
+                  </span>
+                </div>
               </div>
 
               <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${color}`}>
-                    <div className="text-white">{Icon}</div>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-foreground">{service.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
-                  </div>
-                </div>
+                <h3 className="font-bold text-xl text-foreground mb-2 group-hover:text-teal-600 transition-colors">
+                  {service.name}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {service.description}
+                </p>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors bg-transparent"
-                >
-                  View
-                </Button>
+                {service.available ? (
+                  <div className="mt-4 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-600 font-medium">
+                      Available
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span className="text-xs text-gray-500 font-medium">
+                      Coming Soon
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </Link>
-        )
+          </CardWrapper>
+        );
       })}
     </div>
-  )
+  );
 }
