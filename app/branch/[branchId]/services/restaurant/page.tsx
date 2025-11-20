@@ -3,7 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { RestaurantLayout } from "@/components/restaurant/layout";
+import  RestaurantLayout  from "@/components/restaurant/layout";
 
 interface DecodedPayload {
   branch: {

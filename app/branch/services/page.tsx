@@ -28,7 +28,7 @@ export default function YourComponent() {
       {branchId ? (
         <p>Branch ID: {branchId}</p>
       ) : (
-        <p className="text-red-600">Invalid access link.</p>
+        <p className="text-red-600 text-20 mr-12">Invalid access link.</p>
       )}
     </div>
   );

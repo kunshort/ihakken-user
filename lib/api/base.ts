@@ -1,8 +1,20 @@
-import { fetchBaseQuery } from "@reduxjs/toolkit/query/react"
+import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.dev.ihakken.com",
+  baseUrl: "http://192.168.1.55:8001/",
   prepareHeaders: (headers) => {
-    return headers
+    // read auth token and device fingerprint from localStorage
+    const token = localStorage.getItem("auth_token");
+    const fingerprint = localStorage.getItem("device_fingerprint");
+
+    if (token) {
+      headers.set("X-Proxy-Token", token);
+    }
+
+    if (fingerprint) {
+      headers.set("X-Device-Fingerprint", fingerprint);
+    }
+
+    return headers;
   },
-})
+});

@@ -3,37 +3,10 @@ import { ServicesGrid } from "@/components/services-grid";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Service } from "@/lib/types/interfaces";
-
-interface DecodedService {
-  id: string;
-  name: string;
-  service_type: string;
-}
-
-interface DecodedPayload {
-  branch: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  services: DecodedService[];
-}
-
-function decodePayload(payload: string): DecodedPayload | null {
-  try {
-    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    while (base64.length % 4) {
-      base64 += "=";
-    }
-    return JSON.parse(atob(base64));
-  } catch (e) {
-    console.error("Failed to decode payload:", e);
-    return null;
-  }
-}
+import { useDecodedPayload } from "@/hooks/useDecodedPayload"; // ← use the hook
 
 // Transform decoded services to match ServicesGrid's expected format
-function transformServices(decodedServices: DecodedService[]): Service[] {
+function transformServices(decodedServices: any[]): Service[] {
   return decodedServices.map((service) => ({
     id: service.id,
     name: service.name,
@@ -50,25 +23,18 @@ function transformServices(decodedServices: DecodedService[]): Service[] {
 
 export default function ServicePage() {
   const searchParams = useSearchParams();
-  const [payloadData, setPayloadData] = useState<DecodedPayload | null>(null);
+  const payload = searchParams.get("payload");
+
+  // ⭐ Using the extracted hook
+  const { data: payloadData, error } = useDecodedPayload(payload);
+
   const [transformedServices, setTransformedServices] = useState<Service[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const payload = searchParams.get("payload");
-
-    if (payload) {
-      const data = decodePayload(payload);
-      if (data) {
-        setPayloadData(data);
-        setTransformedServices(transformServices(data.services));
-      } else {
-        setError("Failed to decode payload. Check console for details.");
-      }
-    } else {
-      setError("No payload found in URL.");
+    if (payloadData) {
+      setTransformedServices(transformServices(payloadData.services));
     }
-  }, [searchParams]);
+  }, [payloadData]);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -23,10 +23,10 @@ export function ServicesGrid({
   const getServiceRoute = (service: Service) => {
     const serviceType = service.service_type.toLowerCase();
 
-    // Map service types to their routes
+    // FIXED: Use branchId in the route
     const routeMap: Record<string, string> = {
-      restaurant: `/branch/services/${service.id}/restaurant`,
-      lodging: `/branch/services/${service.id}/lodging`,
+      restaurant: `/branch/${branchId}/services/restaurant`,
+      lodging: `/branch/${branchId}/services/lodging`,  // ✅ Fixed: includes branchId
       // Add more service types as needed
     };
 
@@ -60,7 +60,6 @@ export function ServicesGrid({
                   </div>
                 )}
 
-                {/* Service Type Badge */}
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
                   <span className="text-xs font-semibold text-teal-700 capitalize">
                     {service.service_type}
@@ -99,3 +98,5 @@ export function ServicesGrid({
     </div>
   );
 }
+
+

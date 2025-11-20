@@ -1,127 +1,116 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
+import {
+  createApi,
+  FetchBaseQueryError,
+  skipToken,
+} from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "./base";
 
-interface MenuItem {
-  id: number
-  name: string
-  description: string
-  price: number
-  time: string
-  image: string
-  category: string
-  ingredients?: Array<{ id: number; name: string; emoji: string }>
-  addOns?: Array<{ id: number; name: string; price: number; image: string }>
-  toppings?: Array<{ id: number; name: string; price: number; image: string }>
-  complements?: Array<{ id: number; name: string; price: number; image: string }>
+// ---------- TYPES ----------
+export interface MenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  time: string;
+  image: string;
+  category: string;
+  ingredients?: Array<{ id: number; name: string; emoji: string }>;
+  addOns?: Array<{ id: number; name: string; price: number; image: string }>;
+  toppings?: Array<{ id: number; name: string; price: number; image: string }>;
+  complements?: Array<{
+    id: number;
+    name: string;
+    price: number;
+    image: string;
+  }>;
 }
 
-interface Category {
-  id: string
-  name: string
-  children: Category[]
+export interface Category {
+  id: string;
+  name: string;
+  children: Category[];
 }
 
-// Base query configuration
-const baseQuery = fetchBaseQuery({
-  baseUrl: "/api",
-})
+// ---------- ERROR WRAPPER ----------
+const wrapError = (error: unknown): FetchBaseQueryError => ({
+  status: "CUSTOM_ERROR",
+  data:
+    error instanceof Error
+      ? { message: error.message }
+      : { message: "Unknown error" },
+  error: error instanceof Error ? error.message : "Unknown error",
+});
 
+// ---------- API SLICE ----------
 export const restaurantApi = createApi({
   reducerPath: "restaurantApi",
   baseQuery,
   endpoints: (builder) => ({
-    // Get all menu items for a specific branch
-    getMenuItems: builder.query<MenuItem[], string | void>({
-      queryFn: async (branchId, _api, _extraOptions, fetchWithBQ) => {
+    // 1️⃣ GET MENU ITEMS FOR BRANCH + SERVICE
+    getMenuItems: builder.query<
+      MenuItem[],
+      { serviceId: string }
+    >({
+      async queryFn({ serviceId }, _api, _extraOptions, fetchWithBQ) {
         try {
-          const url = branchId 
-            ? `/menu-items?branchId=${branchId}` 
-            : `/menu-items`;
-          const result = await fetchWithBQ(url)
-          if (result.error) return { error: result.error }
-          return { data: result.data as MenuItem[] }
+          const url = `api/v1/restaurant/menu-assignments/branch-service/${serviceId}/`;
+          const result = await fetchWithBQ(url);
+          if (result.error)
+            return { error: result.error as FetchBaseQueryError };
+          return { data: result.data as MenuItem[] };
         } catch (error) {
-          return { 
-            error: { 
-              status: "CUSTOM_ERROR", 
-              data: error instanceof Error ? error.message : "Unknown error",
-              error: error instanceof Error ? error.message : "Unknown error"
-            } 
-          }
+          return { error: wrapError(error) };
         }
       },
     }),
 
-    // Get single menu item by ID
-    getMenuItemById: builder.query<MenuItem, { id: number; branchId?: string }>({
-      queryFn: async ({ id, branchId }, _api, _extraOptions, fetchWithBQ) => {
-        try {
-          const url = branchId 
-            ? `/menu-items/${id}?branchId=${branchId}` 
-            : `/menu-items/${id}`;
-          const result = await fetchWithBQ(url)
-          if (result.error) return { error: result.error }
-          return { data: result.data as MenuItem }
-        } catch (error) {
-          return { 
-            error: { 
-              status: "CUSTOM_ERROR", 
-              data: error instanceof Error ? error.message : "Unknown error",
-              error: error instanceof Error ? error.message : "Unknown error"
-            } 
+    // 2️⃣ GET SINGLE MENU ITEM
+    getMenuItemById: builder.query<MenuItem, { id: number; branchId?: string }>(
+      {
+        async queryFn({ id, branchId }, _api, _extraOptions, fetchWithBQ) {
+          try {
+            const url = branchId
+              ? `/menu-items/${id}?branchId=${branchId}`
+              : `/menu-items/${id}`;
+            const result = await fetchWithBQ(url);
+            if (result.error)
+              return { error: result.error as FetchBaseQueryError };
+            return { data: result.data as MenuItem };
+          } catch (error) {
+            return { error: wrapError(error) };
           }
-        }
-      },
-    }),
+        },
+      }
+    ),
 
-    // Get categories for a specific branch
-    getCategories: builder.query<Category[], string | void>({
-      queryFn: async (branchId, _api, _extraOptions, fetchWithBQ) => {
+ 
+    // 4️⃣ SEARCH MENU ITEMS
+    searchMenuItems: builder.query<
+      MenuItem[],
+      { query: string; branchId?: string }
+    >({
+      async queryFn({ query, branchId }, _api, _extraOptions, fetchWithBQ) {
         try {
-          const url = branchId 
-            ? `/categories?branchId=${branchId}` 
-            : `/categories`;
-          const result = await fetchWithBQ(url)
-          if (result.error) return { error: result.error }
-          return { data: result.data as Category[] }
-        } catch (error) {
-          return { 
-            error: { 
-              status: "CUSTOM_ERROR", 
-              data: error instanceof Error ? error.message : "Unknown error",
-              error: error instanceof Error ? error.message : "Unknown error"
-            } 
-          }
-        }
-      },
-    }),
-
-    // Search menu items
-    searchMenuItems: builder.query<MenuItem[], { query: string; branchId?: string }>({
-      queryFn: async ({ query, branchId }, _api, _extraOptions, fetchWithBQ) => {
-        try {
-          const url = branchId 
-            ? `/menu-items/search?q=${encodeURIComponent(query)}&branchId=${branchId}`
+          const url = branchId
+            ? `/menu-items/search?q=${encodeURIComponent(
+                query
+              )}&branchId=${branchId}`
             : `/menu-items/search?q=${encodeURIComponent(query)}`;
-          const result = await fetchWithBQ(url)
-          if (result.error) return { error: result.error }
-          return { data: result.data as MenuItem[] }
+          const result = await fetchWithBQ(url);
+          if (result.error)
+            return { error: result.error as FetchBaseQueryError };
+          return { data: result.data as MenuItem[] };
         } catch (error) {
-          return { 
-            error: { 
-              status: "CUSTOM_ERROR", 
-              data: error instanceof Error ? error.message : "Unknown error",
-              error: error instanceof Error ? error.message : "Unknown error"
-            } 
-          }
+          return { error: wrapError(error) };
         }
       },
     }),
   }),
-})
+});
 
+// ---------- HOOKS ----------
 export const {
   useGetMenuItemsQuery,
   useGetMenuItemByIdQuery,
-  useGetCategoriesQuery,
   useSearchMenuItemsQuery,
-} = restaurantApi
+} = restaurantApi;
