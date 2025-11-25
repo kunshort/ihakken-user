@@ -259,7 +259,7 @@ export default function MenuItemDetailsPage() {
                   >
                     <div className="flex gap-3 flex-1 items-center">
                       {ingredient.ingredientImage && (
-                        <div className="relative w-12 h-12 rounded overflow-hidden">
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden">
                           <Image
                             src={
                               ingredient.ingredientImage?.startsWith("http")
@@ -303,7 +303,7 @@ export default function MenuItemDetailsPage() {
                 >
                   <div className="flex gap-3 flex-1">
                     {addon.addonImage && (
-                      <div className="relative w-16 h-16 rounded overflow-hidden">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden">
                         <Image
                           src={
                             addon.addonImage?.startsWith("http")
@@ -375,7 +375,7 @@ export default function MenuItemDetailsPage() {
                 >
                   <div className="flex gap-3 flex-1">
                     {topping.toppinImage && (
-                      <div className="relative w-16 h-16 rounded overflow-hidden">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden">
                         <Image
                           src={
                             topping.toppinImage?.startsWith("http")
@@ -449,7 +449,7 @@ export default function MenuItemDetailsPage() {
                 >
                   <div className="flex gap-3 flex-1">
                     {complement.complementImage && (
-                      <div className="relative w-16 h-16 rounded overflow-hidden">
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden">
                         <Image
                           src={
                             complement.complementImage?.startsWith("http")
