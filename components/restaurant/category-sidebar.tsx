@@ -1,18 +1,13 @@
+// category-sidebar.tsx
 "use client";
 
 import { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MenuItem } from "@/lib/types/interfaces";
-
-export interface Category {
-  id: string;
-  name: string;
-  children?: Category[]; // for future nested categories
-}
-
+import { Category } from "@/lib/utils";
 interface CategorySidebarProps {
-  menuItems: MenuItem[];
+  categories: Category[];
   selectedCategoryId: string;
   onSelectCategory: (categoryId: string) => void;
   onClose: () => void;
@@ -20,7 +15,7 @@ interface CategorySidebarProps {
 }
 
 export function CategorySidebar({
-  menuItems,
+  categories,
   selectedCategoryId,
   onSelectCategory,
   onClose,
@@ -29,18 +24,6 @@ export function CategorySidebar({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(["all"])
   );
-
-  // Generate flat unique categories from menuItems
-  const categories: Category[] = [
-    { id: "all", name: "All Items" },
-    ...Array.from(
-      new Map(
-        menuItems
-          .flatMap((item) => item.menuItem.categories)
-          .map((c) => [c.id, { id: c.id, name: c.name }])
-      ).values()
-    ),
-  ];
 
   const toggleCategory = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);

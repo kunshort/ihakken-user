@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Wifi, Wind, Coffee } from "lucide-react";
 import { Accommodation } from "@/lib/types/interfaces";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import Image from "next/image";
+import { BASE_API_URL } from "@/lib/api/base";
 
 interface AccommodationGridProps {
   accommodations: Accommodation[];
@@ -39,8 +41,10 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {accommodations.map((accommodation) => {
-        const imageUrl =
-          accommodation.mainImage?.[0]?.url || "/placeholder.svg";
+        const image = accommodation.mainImage?.[0]?.url;
+        const imageUrl = image?.startsWith("http")
+          ? image
+          : `${BASE_API_URL}${image}`;
         const price = parseFloat(accommodation.pricePerNight || "0");
         const href = `/branch/${branchId}/services/lodging/${accommodation.id}${
           payload ? `?payload=${payload}` : ""
@@ -50,15 +54,18 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
           <Link key={accommodation.id} href={href}>
             <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer h-full">
               <div className="relative h-48 overflow-hidden bg-muted">
-                <img
-                  src={imageUrl || "/placeholder.svg"}
-                  alt={accommodation.typeName}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    const img = e.target as HTMLImageElement;
-                    img.src = `/placeholder.svg?height=192&width=400&query=${accommodation.typeName}`;
-                  }}
-                />
+                {image ? (
+                  <Image
+                    src={imageUrl}
+                    alt={accommodation.typeName}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-5xl opacity-20">🍽️</div>
+                  </div>
+                )}
               </div>
 
               <CardContent className="p-5">

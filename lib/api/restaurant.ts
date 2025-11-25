@@ -4,32 +4,28 @@ import {
   skipToken,
 } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./base";
+import { MenuCategory, MenuCategoryResponse, MenuItem, ParentCategory } from "../types/interfaces";
 
 // ---------- TYPES ----------
-export interface MenuItem {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  time: string;
-  image: string;
-  category: string;
-  ingredients?: Array<{ id: number; name: string; emoji: string }>;
-  addOns?: Array<{ id: number; name: string; price: number; image: string }>;
-  toppings?: Array<{ id: number; name: string; price: number; image: string }>;
-  complements?: Array<{
-    id: number;
-    name: string;
-    price: number;
-    image: string;
-  }>;
-}
+// export interface MenuItem {
+//   id: number;
+//   name: string;
+//   description: string;
+//   price: number;
+//   time: string;
+//   image: string;
+//   category: string;
+//   ingredients?: Array<{ id: number; name: string; emoji: string }>;
+//   addOns?: Array<{ id: number; name: string; price: number; image: string }>;
+//   toppings?: Array<{ id: number; name: string; price: number; image: string }>;
+//   complements?: Array<{
+//     id: number;
+//     name: string;
+//     price: number;
+//     image: string;
+//   }>;
+// }
 
-export interface Category {
-  id: string;
-  name: string;
-  children: Category[];
-}
 
 // ---------- ERROR WRAPPER ----------
 const wrapError = (error: unknown): FetchBaseQueryError => ({
@@ -47,10 +43,7 @@ export const restaurantApi = createApi({
   baseQuery,
   endpoints: (builder) => ({
     // 1️⃣ GET MENU ITEMS FOR BRANCH + SERVICE
-    getMenuItems: builder.query<
-      MenuItem[],
-      { serviceId: string }
-    >({
+    getMenuItems: builder.query<MenuItem[], { serviceId: string }>({
       async queryFn({ serviceId }, _api, _extraOptions, fetchWithBQ) {
         try {
           const url = `api/v1/restaurant/menu-assignments/branch-service/${serviceId}/`;
@@ -83,7 +76,24 @@ export const restaurantApi = createApi({
       }
     ),
 
- 
+    // 3️⃣ GET MENU CATEGORIES FOR A SERVICE
+    getMenuCategories: builder.query<MenuCategory[], { serviceId: string }>({
+      async queryFn({ serviceId }, _api, _extraOptions, fetchWithBQ) {
+        try {
+          const url = `/api/v1/restaurant/menu-assignments/service/${serviceId}/categories/`;
+          const result = await fetchWithBQ(url);
+
+          if (result.error)
+            return { error: result.error as FetchBaseQueryError };
+
+          const response = result.data as MenuCategoryResponse;
+          return { data: response.data };
+        } catch (error) {
+          return { error: wrapError(error) };
+        }
+      },
+    }),
+
     // 4️⃣ SEARCH MENU ITEMS
     searchMenuItems: builder.query<
       MenuItem[],
@@ -112,5 +122,6 @@ export const restaurantApi = createApi({
 export const {
   useGetMenuItemsQuery,
   useGetMenuItemByIdQuery,
+  useGetMenuCategoriesQuery,
   useSearchMenuItemsQuery,
 } = restaurantApi;

@@ -98,4 +98,31 @@ export interface MenuItem {
   customizations: Customization[];
   createdAt: string;
   updatedAt: string;
+  data: any;
+}
+
+
+export interface ParentCategory {
+  id: string;
+  name: string;
+}
+
+export interface MenuCategory {
+  id: string;
+  parentCategories: ParentCategory[];
+  name: string;
+  shortDescription: string;
+  longDescription: string;
+  image: string;
+  priority: number;
+  categoryClass: string;
+  user: string;
+}
+
+export interface MenuCategoryResponse {
+  erc: number;
+  msg: string;
+  total: number;
+  next: string | null;
+  data: MenuCategory[];
 }
