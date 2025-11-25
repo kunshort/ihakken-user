@@ -3,11 +3,13 @@
 import { Search, Filter, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AccommodationGrid } from "./accommodation-grid";
 import { useGetAccommodationsQuery } from "@/lib/api/lodging";
+import { useDeferredValue } from "react";
+import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -17,6 +19,22 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+
+  useEffect(() => {
+    if (!decoded) return;
+    if (decoded.token) localStorage.setItem("auth_token", decoded.token);
+    if ((decoded as any).device_fingerprint)
+      localStorage.setItem(
+        "device_fingerprint",
+        (decoded as any).device_fingerprint
+      );
+  }, [decoded]);
+
+  const serviceId = decoded?.services.find(
+    (s: any) => s.service_type.toLowerCase() === "lodging"
+  )?.id;
 
   const {
     data: accommodations = [],
@@ -41,7 +59,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
   console.log("Filtered accommodations:", filteredAccommodations);
 
-  const backLink = `/branch/${branchId}/services${
+  const backLink = `/branch/services/${serviceId}${
     payload ? `?payload=${payload}` : ""
   }`;
 
@@ -78,7 +96,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
             img.src = `/placeholder.svg?height=256&width=1200&query=luxury hotel lobby`;
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/20 to-black/40" />
 
         <Link href={backLink} className="absolute top-4 left-4 z-10">
           <Button

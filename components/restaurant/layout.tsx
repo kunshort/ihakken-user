@@ -1,18 +1,23 @@
+// layout.tsx updates
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Filter, ChevronLeft, Menu } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CategorySidebar, Category } from "./category-sidebar";
+import { CategorySidebar } from "./category-sidebar";
+import type { Category } from "@/lib/utils";
 import { MenuGrid } from "./menu-grid";
-import { useGetMenuItemsQuery } from "@/lib/api/restaurant";
+import {
+  useGetMenuItemsQuery,
+  useGetMenuCategoriesQuery,
+} from "@/lib/api/restaurant";
 import { useSearchParams } from "next/navigation";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { MenuItem } from "@/lib/types/interfaces";
-import MenuItemDetailsPage from "@/app/branch/[branchId]/services/restaurant/[id]/page";
+import { buildCategoryHierarchy } from "@/lib/utils";
 
 interface RestaurantLayoutProps {
   branchId: string;
@@ -22,6 +27,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const menuGridRef = useRef<HTMLDivElement>(null);
 
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
@@ -39,50 +45,110 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   }, [decoded]);
 
   const serviceId = decoded?.services.find(
-    (s) => s.service_type.toLowerCase() === "restaurant"
+    (s: any) => s.service_type.toLowerCase() === "restaurant"
   )?.id;
 
+  // Fetch menu items
   const {
     data: menuData,
     isLoading: isLoadingMenu,
     error: isErrorMenu,
   } = useGetMenuItemsQuery(serviceId ? { serviceId } : skipToken);
 
+  // Fetch categories separately
+  const { data: categoriesData, isLoading: isLoadingCategories } =
+    useGetMenuCategoriesQuery(serviceId ? { serviceId } : skipToken);
+
   const menuItemsRaw: MenuItem[] = menuData?.data || [];
+  const rawCategories = categoriesData || [];
 
-  // Generate unique categories from menuItem.categories
+  // Build hierarchical categories
   const categories: Category[] = useMemo(() => {
-    const catMap: Record<string, string> = {};
-    menuItemsRaw.forEach((assignment) => {
-      assignment.menuItem.categories?.forEach((c) => {
-        if (!catMap[c.id]) catMap[c.id] = c.name;
+    if (!rawCategories || rawCategories.length === 0) {
+      return [{ id: "all", name: "All Items" }];
+    }
+    return buildCategoryHierarchy(rawCategories);
+  }, [rawCategories]);
+
+  // Group menu items by category for the grid
+  const menuItemsByCategory = useMemo(() => {
+    const grouped: Record<string, MenuItem[]> = {};
+
+    // Initialize with all categories
+    categories.forEach((cat) => {
+      if (cat.id !== "all") {
+        grouped[cat.id] = [];
+      }
+    });
+
+    // Add "uncategorized" group
+    grouped["uncategorized"] = [];
+
+    // Assign items to categories
+    menuItemsRaw.forEach((item) => {
+      const itemCategories = item.menuItem.categories || [];
+
+      if (itemCategories.length > 0) {
+        itemCategories.forEach((cat) => {
+          if (!grouped[cat.id]) {
+            grouped[cat.id] = [];
+          }
+          grouped[cat.id].push(item);
+        });
+      } else {
+        grouped["uncategorized"].push(item);
+      }
+    });
+
+    // Filter out empty categories
+    Object.keys(grouped).forEach((catId) => {
+      if (grouped[catId].length === 0 && catId !== "uncategorized") {
+        delete grouped[catId];
+      }
+    });
+
+    return grouped;
+  }, [menuItemsRaw, categories]);
+
+  // Handle category selection - scroll to section
+  const handleSelectCategory = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+
+    if (categoryId === "all") {
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Scroll to the category section
+      const element = document.getElementById(`category-${categoryId}`);
+      if (element && menuGridRef.current) {
+        const offset = 100; // Account for sticky header
+        const elementPosition = element.offsetTop - offset;
+        window.scrollTo({ top: elementPosition, behavior: "smooth" });
+      }
+    }
+
+    setIsSidebarOpen(false);
+  };
+
+  // Filter items for search only
+  const filteredItemsByCategory = useMemo(() => {
+    if (!searchQuery) return menuItemsByCategory;
+
+    const filtered: Record<string, MenuItem[]> = {};
+
+    Object.entries(menuItemsByCategory).forEach(([categoryId, items]) => {
+      const filteredItems = items.filter((assignment) => {
+        const name = assignment.menuItem.name || "";
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
       });
+
+      if (filteredItems.length > 0) {
+        filtered[categoryId] = filteredItems;
+      }
     });
-    const categoryList = Object.entries(catMap).map(([id, name]) => ({
-      id,
-      name,
-    }));
-    return [{ id: "all", name: "All Items" }, ...categoryList];
-  }, [menuItemsRaw]);
 
-  // Filter items
-  const filteredItems = useMemo(() => {
-    return menuItemsRaw.filter((assignment) => {
-      const name = assignment.menuItem.name || "";
-
-      const matchesCategory =
-        selectedCategoryId === "all" ||
-        assignment.menuItem.categories?.some(
-          (c) => c.id === selectedCategoryId
-        );
-
-      const matchesSearch = name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [menuItemsRaw, selectedCategoryId, searchQuery]);
+    return filtered;
+  }, [menuItemsByCategory, searchQuery]);
 
   if (payloadLoading || (!serviceId && !payloadLoading)) {
     return (
@@ -97,12 +163,13 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
       {/* TOP BANNER + SEARCH */}
       <div className="sticky top-0 z-20">
         <div className="relative h-48 md:h-64 bg-linear-to-r from-teal-600 to-teal-800 overflow-hidden">
-          
           <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex flex-col justify-between p-4">
             <div className="flex items-center gap-4">
               <Link
-                href={`/branch/services${payload ? `?payload=${payload}` : ""}`}
+                href={`/branch/services/${serviceId}${
+                  payload ? `?payload=${payload}` : ""
+                }`}
               >
                 <Button
                   variant="ghost"
@@ -112,6 +179,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                   <ChevronLeft className="w-5 h-5 text-white" />
                 </Button>
               </Link>
+
               <h1 className="text-2xl md:text-3xl font-bold text-white">
                 Our Restaurant Menu
               </h1>
@@ -139,7 +207,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
       </div>
 
       {/* LOADING & ERROR STATES */}
-      {isLoadingMenu && (
+      {(isLoadingMenu || isLoadingCategories) && (
         <div className="min-h-screen flex items-center justify-center">
           <p className="text-muted-foreground">Loading menu...</p>
         </div>
@@ -165,7 +233,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                   {categories.map((category) => (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategoryId(category.id)}
+                      onClick={() => handleSelectCategory(category.id)}
                       className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                         selectedCategoryId === category.id
                           ? "bg-teal-500 text-white shadow-md"
@@ -180,7 +248,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
             </div>
 
             {/* MENU GRID */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-3" ref={menuGridRef}>
               {/* MOBILE SIDEBAR TRIGGER */}
               <div className="mb-6 flex items-center gap-2 md:hidden">
                 <button
@@ -196,12 +264,15 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
 
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {filteredItems.length} item
-                  {filteredItems.length !== 1 ? "s" : ""}
+                  {searchQuery ? "Search results" : "Browse our menu"}
                 </p>
               </div>
 
-              <MenuGrid items={filteredItems} branchId={branchId} />
+              <MenuGrid
+                itemsByCategory={filteredItemsByCategory}
+                categories={categories}
+                branchId={branchId}
+              />
             </div>
           </div>
         </div>
@@ -209,14 +280,12 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
 
       {/* MOBILE SIDEBAR */}
       <CategorySidebar
-        menuItems={menuItemsRaw}
+        categories={categories}
         selectedCategoryId={selectedCategoryId}
-        onSelectCategory={(id: string) => setSelectedCategoryId(id)}
+        onSelectCategory={handleSelectCategory}
         onClose={() => setIsSidebarOpen(false)}
         isOpen={isSidebarOpen}
       />
-
-
     </div>
   );
 }

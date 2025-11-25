@@ -1,81 +1,38 @@
-"use client";
+// hooks/useDecodedPayload.ts
+import { useState, useEffect } from 'react';
 
-import { useEffect, useState } from "react";
-
-interface DecodedService {
-  id: string;
-  name: string;
-  service_type: string;
-}
-
-export interface DecodedPayload {
-  token?: string;
-  device_fingerprint?: string;
-  branch: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  services: DecodedService[];
-}
-
-function decodePayload(payload: string): DecodedPayload | null {
-  try {
-    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-
-    while (base64.length % 4) {
-      base64 += "=";
-    }
-
-    const decoded = atob(base64);
-    return JSON.parse(decoded);
-  } catch (e) {
-    console.error("Failed to decode payload:", e);
-    return null;
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = base64.length % 4;
+  if (pad) {
+    base64 += '='.repeat(4 - pad);
   }
+  return atob(base64);
 }
 
-export function useDecodedPayload(payload: string | null) {
-  const [data, setData] = useState<DecodedPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function useDecodedPayload(payload: string) {
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!payload) {
-      setError("No payload found.");
       setLoading(false);
       return;
     }
 
-    const decoded = decodePayload(payload);
-
-    if (!decoded) {
-      setError("Failed to decode payload.");
+    try {
+      const decodedString = base64UrlDecode(payload);
+      const decoded = JSON.parse(decodedString);
+      setData(decoded);
+      setError(null);
+    } catch (err) {
+      setError('Failed to decode payload');
+      console.error('Decoding error:', err);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 🔥 Save security headers (ONLY these)
-    if (decoded.token) {
-      localStorage.setItem("auth_token", decoded.token);
-    }
-
-    if (decoded.device_fingerprint) {
-      localStorage.setItem("device_fingerprint", decoded.device_fingerprint);
-    }
-
-    // Optional but useful
-    if (decoded.branch?.id) {
-      localStorage.setItem("branch_id", decoded.branch.id);
-    }
-
-    if (decoded.services) {
-      localStorage.setItem("services", JSON.stringify(decoded.services));
-    }
-
-    setData(decoded);
-    setLoading(false);
   }, [payload]);
 
-  return { data, error, loading };
+  return { data, loading, error };
 }

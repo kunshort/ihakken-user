@@ -23,9 +23,8 @@ function transformServices(decodedServices: any[]): Service[] {
 
 export default function ServicePage() {
   const searchParams = useSearchParams();
-  const payload = searchParams.get("payload");
+  const payload = searchParams.get("payload") || "";
 
-  // ⭐ Using the extracted hook
   const { data: payloadData, error } = useDecodedPayload(payload);
 
   const [transformedServices, setTransformedServices] = useState<Service[]>([]);
