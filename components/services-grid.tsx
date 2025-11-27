@@ -19,20 +19,14 @@ export function ServicesGrid({
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
 
-  // Function to generate the correct route based on service type
   const getServiceRoute = (service: Service) => {
     const serviceType = service.service_type.toLowerCase();
 
-    // FIXED: Use branchId in the route
     const routeMap: Record<string, string> = {
       restaurant: `/branch/${branchId}/services/restaurant`,
-      lodging: `/branch/${branchId}/services/lodging`,  // ✅ Fixed: includes branchId
-      // Add more service types as needed
+      lodging: `/branch/${branchId}/services/lodging`, 
     };
-
     const route = routeMap[serviceType] || `/branch/services/${service.id}`;
-
-    // Append payload if it exists
     return payload ? `${route}?payload=${payload}` : route;
   };
 
@@ -98,5 +92,3 @@ export function ServicesGrid({
     </div>
   );
 }
-
-

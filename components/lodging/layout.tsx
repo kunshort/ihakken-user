@@ -11,6 +11,7 @@ import { useGetAccommodationsQuery } from "@/lib/api/lodging";
 import { useDeferredValue } from "react";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 import { Accommodation } from "@/lib/types/interfaces";
+import { CallServiceModal } from "./serviceModal";
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -22,6 +23,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+    const [callModalOpen, setCallModalOpen] = useState(false);
+
 
   useEffect(() => {
     if (!decoded) return;
@@ -136,8 +139,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
             </Button>
           </div>
         </div>
-      </div>
-
+      </div> 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {filteredAccommodations.length > 0 ? (
           <AccommodationGrid accommodations ={filteredAccommodations} />
@@ -152,6 +154,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           </div>
         )}
       </div>
+     
     </div>
   );
 }

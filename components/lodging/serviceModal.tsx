@@ -35,6 +35,18 @@ const services = [
     description: "Report maintenance issues",
     icon: Wrench,
   },
+  {
+    id: "security",
+    name: "Security",
+    description: "Report security concerns",
+    icon: Users,
+  },
+  {
+    id: "janitorial",
+    name: "Janitorial",
+    description: "Request janitorial services",
+    icon: ShoppingCart,
+  },
 ]
 
 export function CallServiceModal({ open, onOpenChange }: CallServiceModalProps) {
