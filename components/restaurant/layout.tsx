@@ -27,6 +27,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const menuGridRef = useRef<HTMLDivElement>(null);
 
   const searchParams = useSearchParams();
@@ -43,6 +44,22 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
         (decoded as any).device_fingerprint
       );
   }, [decoded]);
+
+  // Effect to detect scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const serviceId = decoded?.services.find(
     (s: any) => s.service_type.toLowerCase() === "restaurant"
@@ -160,12 +177,17 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* TOP BANNER + SEARCH */}
-      <div className="sticky top-0 z-20">
-        <div className="relative h-48 md:h-64 bg-linear-to-r from-teal-600 to-teal-800 overflow-hidden">
+      {/* DYNAMIC STICKY HEADER */}
+      <div className="sticky top-0 z-20 bg-white shadow-sm">
+        {/* TOP BANNER (Alternating Height) */}
+        <div
+          className={`relative bg-linear-to-r from-teal-600 to-teal-800 overflow-hidden transition-all duration-300 ease-in-out ${
+            isScrolled ? "h-16" : "h-48 md:h-64"
+          }`}
+        >
           <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
-          <div className="absolute inset-0 flex flex-col justify-between p-4">
-            <div className="flex items-center gap-4">
+          <div className="absolute inset-0 flex items-center p-4">
+            <div className="flex w-full items-center gap-4">
               <Link
                 href={`/branch/services/${serviceId}${
                   payload ? `?payload=${payload}` : ""
@@ -174,13 +196,17 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-white/20 hover:bg-white/30"
+                  className="bg-white/20 hover:bg-white/30 flex-shrink-0"
                 >
                   <ChevronLeft className="w-5 h-5 text-white" />
                 </Button>
               </Link>
 
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
+              <h1
+                className={`font-bold text-white transition-all duration-300 ease-in-out ${
+                  isScrolled ? "text-xl" : "text-2xl md:text-3xl"
+                }`}
+              >
                 Our Restaurant Menu
               </h1>
             </div>
@@ -188,7 +214,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
         </div>
 
         {/* SEARCH BAR */}
-        <div className="bg-white border-b border-border px-4 py-4">
+        <div className="border-b border-border px-4 py-4">
           <div className="max-w-6xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -224,7 +250,8 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* DESKTOP SIDEBAR */}
             <div className="hidden md:block md:col-span-1">
-              <div className="bg-linear-to-b from-teal-50 to-transparent rounded-lg p-4 sticky top-24">
+              {/* Set a fixed top value to prevent jumping during scroll */}
+              <div className="bg-linear-to-b from-teal-50 to-transparent rounded-lg p-4 sticky top-[140px]">
                 <h2 className="text-sm font-semibold text-teal-600 mb-4 flex items-center gap-2">
                   <div className="w-1 h-4 bg-teal-500 rounded-full" />
                   View Categories
@@ -249,8 +276,8 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
 
             {/* MENU GRID */}
             <div className="md:col-span-3" ref={menuGridRef}>
-              {/* MOBILE SIDEBAR TRIGGER */}
-              <div className="mb-6 flex items-center gap-2 md:hidden">
+              {/* MOBILE SIDEBAR TRIGGER - Sticky container */}
+              <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
                 <button
                   onClick={() => setIsSidebarOpen(true)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
@@ -262,7 +289,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                 </button>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-4 mt-6 md:mt-0">
                 <p className="text-sm text-muted-foreground">
                   {searchQuery ? "Search results" : "Browse our menu"}
                 </p>

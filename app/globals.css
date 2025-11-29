@@ -114,6 +114,26 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 }
+/* globals.css or similar */
+
+@keyframes blink {
+  0% { opacity: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0.2; }
+}
+
+.dot-animation span {
+  animation: blink 1.4s infinite;
+}
+
+.dot-animation span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot-animation span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
 
 @layer base {
   * {
