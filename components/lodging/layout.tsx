@@ -1,17 +1,15 @@
 "use client";
 
-import { Search, Filter, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useGetAccommodationsQuery } from "@/lib/api/lodging";
+import { Accommodation } from "@/lib/types/interfaces";
+import { ChevronLeft, Filter, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { AccommodationGrid } from "./accommodation-grid";
-import { useGetAccommodationsQuery } from "@/lib/api/lodging";
-import { useDeferredValue } from "react";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
-import { Accommodation } from "@/lib/types/interfaces";
-import { CallServiceModal } from "./serviceModal";
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -23,7 +21,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
-    const [callModalOpen, setCallModalOpen] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -63,9 +61,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
   console.log("Filtered accommodations:", filteredAccommodations);
 
-  const backLink = `/branch/services/${serviceId}${
-    payload ? `?payload=${payload}` : ""
-  }`;
+  const backLink = `/branch/services/${serviceId}${payload ? `?payload=${payload}` : ""
+    }`;
 
   if (loading) {
     return (
@@ -139,10 +136,10 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
             </Button>
           </div>
         </div>
-      </div> 
+      </div>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {filteredAccommodations.length > 0 ? (
-          <AccommodationGrid accommodations ={filteredAccommodations} />
+          <AccommodationGrid accommodations={filteredAccommodations} />
         ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No accommodations found</p>
@@ -154,7 +151,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           </div>
         )}
       </div>
-     
+
     </div>
   );
 }

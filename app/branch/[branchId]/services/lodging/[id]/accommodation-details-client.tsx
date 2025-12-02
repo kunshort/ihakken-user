@@ -1,24 +1,24 @@
 "use client";
 
-import {
-  ChevronLeft,
-  Wifi,
-  Wind,
-  Coffee,
-  Dumbbell,
-  Users,
-  Phone,
-} from "lucide-react";
-import Link from "next/link";
+import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
-import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
-import { CallServiceModal } from "@/components/lodging/serviceModal";
+import {
+  ChevronLeft,
+  Coffee,
+  Dumbbell,
+  Phone,
+  Users,
+  Wifi,
+  Wind,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation;
@@ -56,9 +56,8 @@ export default function AccommodationDetailsClient({
   const { data: decodedPayload } = useDecodedPayload(payload);
   const branchId = decodedPayload?.branch?.id || "";
 
-  const backHref = `/branch/${branchId}/services/lodging${
-    payload ? `?payload=${payload}` : ""
-  }`;
+  const backHref = `/branch/${branchId}/services/lodging${payload ? `?payload=${payload}` : ""
+    }`;
 
   return (
     <>
