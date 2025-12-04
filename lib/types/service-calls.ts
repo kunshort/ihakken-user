@@ -1,3 +1,6 @@
+// lib/types/service-calls.ts
+import { LucideIcon } from "lucide-react";
+
 export interface ServiceCall {
   id: string;
   serviceId: string;
@@ -54,15 +57,49 @@ export interface CallStatusResponse {
   metadata?: Record<string, any>;
 }
 
+// Updated Service interface with API fields
 export interface Service {
   id: string;
   name: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  color: string;
-  bgColor: string;
-  borderColor: string;
+  description?: string;
+  icon: string;
+  isActive: boolean;
+  branchService: string;
+  branchId: string;
+  branchServiceName: string;
+  // For frontend compatibility
+  color?: string;
+  bgColor?: string;
+  borderColor?: string;
+  available?: boolean;
   staffUnitId?: string;
+  status?: "active" | "inactive" | "offline";
+  staffUnit?: {
+    id: string;
+    name: string;
+    is_active: boolean;
+    branch_service: string;
+  };
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  erc: number;
+  msg: string;
+  total: number;
+  next: string | null;
+  data: T[];
+}
+
+export interface StaffUnit {
+  id: string;
+  name: string;
+  icon: string;
+  description?: string;
+  isActive: boolean;
+  branchService: string;
+  branchId: string;
+  branchServiceName: string;
 }
 
 export type CallStatus =

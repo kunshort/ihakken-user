@@ -1,6 +1,5 @@
 "use client";
 
-import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
@@ -218,19 +217,7 @@ export default function AccommodationDetailsClient({
             Reserve Now
           </Button>
         </div>
-        <div className="text-center mb-8">
-          <Button
-            variant="outline"
-            onClick={() => setCallModalOpen(true)}
-            className="flex items-center gap-2 border-teal-600 text-teal-600 hover:bg-teal-50 mx-auto"
-          >
-            <Phone className="w-4 h-4" />
-            Call Service
-          </Button>
-        </div>
       </div>
-
-      <CallServiceModal open={callModalOpen} onOpenChange={setCallModalOpen} />
     </>
   );
 }

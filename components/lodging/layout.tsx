@@ -1,11 +1,12 @@
 "use client";
 
+import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 import { useGetAccommodationsQuery } from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
-import { ChevronLeft, Filter, Search } from "lucide-react";
+import { ChevronLeft, Filter, Phone, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -22,7 +23,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
   const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
   const [callModalOpen, setCallModalOpen] = useState(false);
-
 
   useEffect(() => {
     if (!decoded) return;
@@ -86,7 +86,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
       <div className="relative h-56 md:h-64 overflow-hidden">
         <img
           src="/luxury-hotel-lobby.jpg"
@@ -137,7 +137,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           </div>
         </div>
       </div>
-      <div className="max-w-6xl mx-auto px-4 py-8">
+
+      <div className="max-w-6xl mx-auto px-4 py-8 pb-24"> {/* Added pb-24 for bottom padding */}
         {filteredAccommodations.length > 0 ? (
           <AccommodationGrid accommodations={filteredAccommodations} />
         ) : (
@@ -152,6 +153,18 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
         )}
       </div>
 
+      {/* Fixed Call Staff Button at Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          onClick={() => setCallModalOpen(true)}
+          className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white shadow-lg rounded-full px-4 py-4 h-auto"
+        >
+          <Phone className="w-5 h-5 flex items-center justify-center" />
+          <span className="font-medium flex items-center justify-center"></span>
+        </Button>
+      </div>
+
+      <CallServiceModal open={callModalOpen} onOpenChange={setCallModalOpen} />
     </div>
   );
 }

@@ -1,9 +1,10 @@
+// components/service-call-room.tsx
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
 import { ServiceCall } from '@/lib/types/service-calls'
 import { Button } from '@/components/ui/button'
-import { PhoneOff, Mic, MicOff, Video, VideoOff, Phone, AlertCircle, Users, Volume2, RotateCw } from 'lucide-react'
+import { PhoneOff, Mic, MicOff, Video, VideoOff, Phone, AlertCircle, Users, Volume2, RotateCw, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { CallStatus } from '@/lib/types/service-calls'
 
@@ -35,10 +36,11 @@ export function ServiceCallRoom({
     useEffect(() => {
         setLocalCallStatus(callStatus)
 
-        if (callStatus === 'connecting') {
+        // Simulate call acceptance after 3 seconds for demo
+        if (callStatus === 'ringing') {
             const timer = setTimeout(() => {
                 onCallAccepted()
-            }, 2000)
+            }, 3000)
 
             return () => clearTimeout(timer)
         }
@@ -48,34 +50,52 @@ export function ServiceCallRoom({
     useEffect(() => {
         if (localCallStatus === 'ringing') {
             try {
-                audioRef.current = new Audio('/sounds/ringtone.mp3')
-                audioRef.current.loop = true
-                audioRef.current.volume = 0.3
+                // Create ringtone using Web Audio API for better control
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+                const oscillator = audioContext.createOscillator()
+                const gainNode = audioContext.createGain()
 
-                const playPromise = audioRef.current.play()
+                oscillator.connect(gainNode)
+                gainNode.connect(audioContext.destination)
 
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => {
-                        setShowRingtoneControls(true)
-                    })
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.5)
+                oscillator.type = 'sine'
+
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
+
+                oscillator.start()
+                oscillator.stop(audioContext.currentTime + 0.8)
+
+                const interval = setInterval(() => {
+                    if (localCallStatus === 'ringing') {
+                        const newOscillator = audioContext.createOscillator()
+                        const newGain = audioContext.createGain()
+
+                        newOscillator.connect(newGain)
+                        newGain.connect(audioContext.destination)
+
+                        newOscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+                        newOscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.5)
+                        newOscillator.type = 'sine'
+
+                        newGain.gain.setValueAtTime(0.1, audioContext.currentTime)
+
+                        newOscillator.start()
+                        newOscillator.stop(audioContext.currentTime + 0.8)
+                    }
+                }, 2000)
+
+                return () => {
+                    clearInterval(interval)
+                    audioContext.close()
                 }
             } catch (error) {
                 console.error('Error playing ringtone:', error)
                 setShowRingtoneControls(true)
             }
         } else {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current = null
-            }
             setShowRingtoneControls(false)
-        }
-
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current = null
-            }
         }
     }, [localCallStatus])
 
@@ -110,17 +130,6 @@ export function ServiceCallRoom({
         toast.info(`Camera ${!videoEnabled ? 'enabled' : 'disabled'}`)
     }
 
-    const handlePlayRingtone = () => {
-        if (audioRef.current) {
-            audioRef.current.play()
-                .then(() => setShowRingtoneControls(false))
-                .catch(error => {
-                    toast.error('Could not play ringtone. Please check your browser permissions.')
-                    console.error('Ringtone play error:', error)
-                })
-        }
-    }
-
     const getStatusIcon = () => {
         switch (localCallStatus) {
             case 'ringing':
@@ -131,7 +140,7 @@ export function ServiceCallRoom({
                 return <Users className="w-14 h-14 text-white" />
             case 'failed':
             case 'ended':
-                return <AlertCircle className="w-14 h-14 text-white" />
+                return <XCircle className="w-14 h-14 text-white" />
             default:
                 return <Phone className="w-14 h-14 text-white" />
         }
@@ -152,6 +161,17 @@ export function ServiceCallRoom({
         }
     }
 
+    const getCallerInfo = () => {
+        return {
+            name: serviceCall.userName,
+            service: serviceCall.serviceName,
+            time: new Date(serviceCall.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        }
+    }
+
     return (
         <div className="rounded-xl overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl">
             <div className="h-[500px] flex flex-col items-center justify-center relative">
@@ -159,9 +179,9 @@ export function ServiceCallRoom({
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                     <div className={`flex items-center gap-2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full border ${localCallStatus === 'connected' ? 'border-green-500/30' : 'border-gray-700'}`}>
                         <div className={`w-2 h-2 rounded-full animate-pulse ${localCallStatus === 'connected' ? 'bg-green-500' :
-                                localCallStatus === 'ringing' ? 'bg-yellow-500' :
-                                    localCallStatus === 'connecting' ? 'bg-blue-500' :
-                                        'bg-red-500'
+                            localCallStatus === 'ringing' ? 'bg-yellow-500' :
+                                localCallStatus === 'connecting' ? 'bg-blue-500' :
+                                    'bg-red-500'
                             }`} />
                         <span className="text-sm font-medium">
                             {localCallStatus === 'connected' ? `Connected • ${formatTime(callDuration)}` :
@@ -214,7 +234,7 @@ export function ServiceCallRoom({
                                         Ringtone blocked by browser. Click below to play:
                                     </p>
                                     <Button
-                                        onClick={handlePlayRingtone}
+                                        onClick={() => {/* Handle ringtone play */ }}
                                         variant="outline"
                                         className="border-gray-600 text-gray-300 hover:bg-gray-800 w-full"
                                     >
@@ -295,12 +315,12 @@ export function ServiceCallRoom({
                                         <div className="font-medium text-green-400">Secure • LiveKit</div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-gray-400">Room</div>
-                                        <div className="font-medium font-mono text-xs">{serviceCall.roomName}</div>
+                                        <div className="text-gray-400">Caller</div>
+                                        <div className="font-medium">{getCallerInfo().name}</div>
                                     </div>
                                     <div className="space-y-1">
-                                        <div className="text-gray-400">Status</div>
-                                        <div className="font-medium">Active</div>
+                                        <div className="text-gray-400">Started</div>
+                                        <div className="font-medium">{getCallerInfo().time}</div>
                                     </div>
                                 </div>
                             </div>
@@ -320,6 +340,26 @@ export function ServiceCallRoom({
                                     : `Your call to ${serviceCall.serviceName} has ended`
                                 }
                             </p>
+
+                            <div className="mb-6 p-4 bg-black/30 rounded-lg">
+                                <h4 className="text-sm font-medium mb-2">Call Details</h4>
+                                <div className="space-y-2 text-sm text-gray-300">
+                                    <div className="flex justify-between">
+                                        <span>Service:</span>
+                                        <span>{serviceCall.serviceName}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Duration:</span>
+                                        <span>{formatTime(callDuration)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Status:</span>
+                                        <span className={localCallStatus === 'failed' ? 'text-red-400' : 'text-gray-400'}>
+                                            {localCallStatus === 'failed' ? 'Failed' : 'Completed'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="flex gap-3 justify-center">
                                 {localCallStatus === 'failed' && (
@@ -361,8 +401,8 @@ export function ServiceCallRoom({
                             size="lg"
                             onClick={toggleAudio}
                             className={`rounded-full p-4 shadow-xl ${!audioEnabled
-                                    ? "bg-red-600 hover:bg-red-700 text-white"
-                                    : "bg-gray-700 hover:bg-gray-600 text-white backdrop-blur-sm"
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-gray-700 hover:bg-gray-600 text-white backdrop-blur-sm"
                                 }`}
                             title={audioEnabled ? "Mute microphone" : "Unmute microphone"}
                         >
@@ -375,8 +415,8 @@ export function ServiceCallRoom({
                                 size="lg"
                                 onClick={toggleVideo}
                                 className={`rounded-full p-4 shadow-xl ${!videoEnabled
-                                        ? "bg-red-600 hover:bg-red-700 text-white"
-                                        : "bg-gray-700 hover:bg-gray-600 text-white backdrop-blur-sm"
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                    : "bg-gray-700 hover:bg-gray-600 text-white backdrop-blur-sm"
                                     }`}
                                 title={videoEnabled ? "Turn off camera" : "Turn on camera"}
                             >

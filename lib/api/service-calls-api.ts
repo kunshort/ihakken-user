@@ -1,3 +1,4 @@
+// lib/api/service-calls-api.ts
 import {
   CallStatusResponse,
   EndCallRequest,
@@ -27,23 +28,26 @@ class ServiceCallsAPI {
         body: JSON.stringify(request),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `HTTP ${response.status}: ${response.statusText}`,
+        }));
+
         throw new Error(
-          data.message ||
-            data.detail ||
-            data.error ||
-            `Failed to initiate call: ${response.status} ${response.statusText}`
+          errorData.message ||
+            errorData.detail ||
+            errorData.error ||
+            `Failed to initiate call (${response.status})`
         );
       }
 
+      const data: InitiateCallResponse = await response.json();
       return data;
     } catch (error) {
-      console.error("[API] Initiate call error:", error);
+      console.error("[ServiceCallsAPI] Initiate call error:", error);
 
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(`Call failed: ${error.message}`);
       } else {
         toast.error("Failed to start call. Please try again.");
       }
@@ -63,23 +67,26 @@ class ServiceCallsAPI {
         body: JSON.stringify(request),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `HTTP ${response.status}: ${response.statusText}`,
+        }));
+
         throw new Error(
-          data.message ||
-            data.detail ||
-            data.error ||
-            `Failed to end call: ${response.status} ${response.statusText}`
+          errorData.message ||
+            errorData.detail ||
+            errorData.error ||
+            `Failed to end call (${response.status})`
         );
       }
 
+      const data: EndCallResponse = await response.json();
       return data;
     } catch (error) {
-      console.error("[API] End call error:", error);
+      console.error("[ServiceCallsAPI] End call error:", error);
 
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(`Failed to end call: ${error.message}`);
       } else {
         toast.error("Failed to end call properly.");
       }
@@ -94,28 +101,18 @@ class ServiceCallsAPI {
         headers: {
           Accept: "application/json",
         },
+        cache: "no-cache",
       });
 
       if (!response.ok) {
         throw new Error(`Failed to get call status: ${response.status}`);
       }
 
-      return await response.json();
+      const data: CallStatusResponse = await response.json();
+      return data;
     } catch (error) {
-      console.error("[API] Get call status error:", error);
+      console.error("[ServiceCallsAPI] Get call status error:", error);
       throw error;
-    }
-  }
-
-  async checkServiceAvailability(staffUnitId: string): Promise<boolean> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/availability/${staffUnitId}/`
-      );
-      return response.ok;
-    } catch (error) {
-      console.error("[API] Check availability error:", error);
-      return false;
     }
   }
 }

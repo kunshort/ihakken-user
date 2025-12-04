@@ -1,3 +1,4 @@
+// hooks/useServiceCall.ts
 import { useState, useCallback, useEffect, useRef } from "react";
 import { serviceCallsAPI } from "@/lib/api/service-calls-api";
 import { ServiceCall, CallStatus } from "@/lib/types/service-calls";
@@ -12,7 +13,9 @@ export function useServiceCall() {
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) {
@@ -21,44 +24,75 @@ export function useServiceCall() {
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
       }
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
     };
   }, []);
 
-  const startStatusPolling = useCallback((callSessionId: string) => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-    }
-
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const status = await serviceCallsAPI.getCallStatus(callSessionId);
-
-        switch (status.status) {
-          case "connected":
-            setCallStatus("connected");
-            toast.success("Call connected!");
-            break;
-          case "ended":
-            setCallStatus("ended");
-            setActiveCall(null);
-            toast.info("Call ended");
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-            }
-            break;
-          case "failed":
-            setCallStatus("failed");
-            setError("Call failed");
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-            }
-            break;
-        }
-      } catch (error) {
-        console.error("Failed to poll call status:", error);
+  const startStatusPolling = useCallback(
+    (callSessionId: string) => {
+      // Clear any existing polling
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
-    }, 3000);
-  }, []);
+
+      // Set connection timeout (30 seconds)
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
+
+      connectionTimeoutRef.current = setTimeout(() => {
+        if (callStatus === "ringing" || callStatus === "connecting") {
+          setCallStatus("failed");
+          setError("Connection timeout. Please try again.");
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+          }
+        }
+      }, 30000);
+
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const status = await serviceCallsAPI.getCallStatus(callSessionId);
+
+          // Clear connection timeout if connected
+          if (status.status === "connected" && connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current);
+          }
+
+          switch (status.status) {
+            case "connected":
+              setCallStatus("connected");
+              toast.success("Call connected!", {
+                description: "You can now speak with the service staff",
+              });
+              break;
+            case "ended":
+              setCallStatus("ended");
+              setActiveCall(null);
+              toast.info("Call ended successfully");
+              if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+              }
+              break;
+            case "failed":
+              setCallStatus("failed");
+              setError("Call failed to connect");
+              toast.error("Call failed. Please try again.");
+              if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+              }
+              break;
+          }
+        } catch (error) {
+          console.error("Failed to poll call status:", error);
+          // Don't set error here to avoid interrupting the call
+        }
+      }, 3000);
+    },
+    [callStatus]
+  );
 
   const startDurationTimer = useCallback(() => {
     if (durationIntervalRef.current) {
@@ -88,6 +122,7 @@ export function useServiceCall() {
           service_type: serviceId,
           metadata: {
             service_name: serviceName,
+            timestamp: new Date().toISOString(),
             ...metadata,
           },
         });
@@ -96,8 +131,8 @@ export function useServiceCall() {
           id: response.call_session_id,
           serviceId,
           serviceName: response.service_name || serviceName,
-          userId: `user-${Date.now()}`,
-          userName: "Guest",
+          userId: `guest-${Date.now()}`,
+          userName: "Guest User",
           roomName: response.room_name,
           status: "pending",
           createdAt: new Date(),
@@ -109,15 +144,24 @@ export function useServiceCall() {
         setActiveCall(serviceCall);
         setCallStatus("connecting");
 
+        // Start polling for status updates
         startStatusPolling(response.call_session_id);
 
-        toast.success(`Calling ${serviceName}...`);
+        toast.success(`Calling ${serviceName}...`, {
+          description: "Please wait while we connect you",
+        });
+
         return serviceCall;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to initiate call";
         setError(errorMessage);
         setCallStatus("idle");
+
+        toast.error("Call failed to start", {
+          description: errorMessage,
+        });
+
         throw err;
       } finally {
         setIsCalling(false);
@@ -131,19 +175,30 @@ export function useServiceCall() {
       try {
         const response = await serviceCallsAPI.endCall({
           call_session_id: callSessionId,
-          reason,
+          reason: reason || "user_ended",
         });
 
         if (response.success) {
           setActiveCall(null);
           setCallStatus("ended");
 
+          // Clean up intervals
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
           }
           if (durationIntervalRef.current) {
             clearInterval(durationIntervalRef.current);
+            durationIntervalRef.current = null;
           }
+          if (connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current);
+            connectionTimeoutRef.current = null;
+          }
+
+          toast.success("Call ended", {
+            description: `Duration: ${response.call_duration || 0} seconds`,
+          });
 
           return true;
         } else {
@@ -153,6 +208,9 @@ export function useServiceCall() {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to end call";
         setError(errorMessage);
+
+        toast.error("Failed to end call properly");
+
         return false;
       }
     },
@@ -180,6 +238,7 @@ export function useServiceCall() {
           setCallStatus("ended");
           if (durationIntervalRef.current) {
             clearInterval(durationIntervalRef.current);
+            durationIntervalRef.current = null;
           }
         }
 
@@ -190,18 +249,50 @@ export function useServiceCall() {
   );
 
   const retryCall = useCallback(async () => {
-    if (!activeCall) return null;
+    if (!activeCall) {
+      toast.error("No active call to retry");
+      return null;
+    }
 
     setCallStatus("ringing");
     setError(null);
 
+    toast.info("Retrying call...");
+
     try {
+      // Simulate retry - in production, you might want to re-initiate the call
+      startStatusPolling(activeCall.id);
       return activeCall;
     } catch (error) {
       setCallStatus("failed");
+      setError("Failed to retry call");
       throw error;
     }
-  }, [activeCall]);
+  }, [activeCall, startStatusPolling]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  const reset = useCallback(() => {
+    setActiveCall(null);
+    setError(null);
+    setCallStatus("idle");
+    setCallDuration(0);
+
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+      durationIntervalRef.current = null;
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+  }, []);
 
   return {
     // State
@@ -211,24 +302,13 @@ export function useServiceCall() {
     callStatus,
     callDuration,
 
+    // Actions
     initiateCall,
     cancelCall,
     endCall,
     updateCallStatus,
     retryCall,
-
-    clearError: () => setError(null),
-    reset: () => {
-      setActiveCall(null);
-      setError(null);
-      setCallStatus("idle");
-      setCallDuration(0);
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-      }
-    },
+    clearError,
+    reset,
   };
 }
