@@ -1,6 +1,7 @@
 "use client";
 
 import { CallServiceModal } from "@/components/lodging/service-call-modal";
+import ErrorComponent from "@/components/shared/errorComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
@@ -20,9 +21,9 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
   const [searchQuery, setSearchQuery] = useState("");
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
   const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
-  const [callModalOpen, setCallModalOpen] = useState(false);
 
   useEffect(() => {
     if (!decoded) return;
@@ -43,12 +44,23 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const branchServiceId = lodgingService?.branch_service;
 
   const {
-    data: accommodations = [] as Accommodation[],
+    data: accommodationsData = [],
     isLoading: loading,
     error,
-  } = useGetAccommodationsQuery(branchId);
+    refetch,
+  } = useGetAccommodationsQuery(serviceId);
 
-  console.log("Raw accommodations data:", accommodations);
+  // Normalize accommodations to ensure they all have the required properties
+  const accommodations: Accommodation[] = Array.isArray(accommodationsData)
+    ? accommodationsData.map((acc: any) => ({
+      ...acc,
+      category: acc.category || "",
+      currency: acc.currency || "USD",
+    }))
+    : [];
+
+  console.log("Raw accommodations data:", accommodationsData);
+  console.log("Normalized accommodations:", accommodations);
   console.log("Is array?", Array.isArray(accommodations));
   console.log("Length:", accommodations?.length);
 
@@ -70,29 +82,54 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const backLink = `/branch/services/${serviceId}${payload ? `?payload=${payload}` : ""
     }`;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading accommodations...</p>
-      </div>
-    );
-  }
+  // Handle retry
+  const [isRetrying, setIsRetrying] = useState(false);
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
-  if (error) {
+  // Get error message
+  const getErrorMessage = () => {
+    if (!error) return "";
+
+    if (typeof error === "string") return error;
+
+    if ("status" in error) {
+      if (error.status === "FETCH_ERROR") {
+        return "Unable to connect to the server. Please check your internet connection.";
+      }
+      if (error.status === 404) {
+        return "Accommodations not found.";
+      }
+      if (error.status === 500) {
+        return "Server error. Please try again later.";
+      }
+      return `Error: ${error.status}`;
+    }
+
+    if ("message" in error && typeof error.message === "string") {
+      return error.message;
+    }
+
+    return "Failed to load accommodations. Please try again.";
+  };
+
+  if (payloadLoading || (!serviceId && !payloadLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-red-600 mb-2">
-            Error loading accommodations
-          </p>
-          <p className="text-sm text-muted-foreground">{error.toString()}</p>
-        </div>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-background">
+      {/* Header Section */}
       <div className="relative h-56 md:h-64 overflow-hidden">
         <img
           src="/luxury-hotel-lobby.jpg"
@@ -125,6 +162,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
         </div>
       </div>
 
+      {/* Search Bar */}
       <div className="bg-white border-b border-border sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2">
@@ -144,17 +182,42 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 pb-24">
-        {filteredAccommodations.length > 0 ? (
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading accommodations...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <ErrorComponent
+            errorMessage={getErrorMessage()}
+            handleRetry={handleRetry}
+            isRetrying={isRetrying}
+          />
+        ) : filteredAccommodations.length > 0 ? (
           <AccommodationGrid accommodations={filteredAccommodations} />
         ) : (
-          <div className="text-center py-10">
-            <p className="text-muted-foreground">No accommodations found</p>
-            {accommodations.length > 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Try clearing your search filter
-              </p>
-            )}
+          <div className="text-center py-20">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                No accommodations found
+              </h3>
+              {searchQuery ? (
+                <p className="text-sm text-muted-foreground">
+                  No results match "{searchQuery}". Try adjusting your search.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  There are no accommodations available at the moment.
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

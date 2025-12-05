@@ -42,7 +42,6 @@ export const restaurantApi = createApi({
   reducerPath: "restaurantApi",
   baseQuery,
   endpoints: (builder) => ({
-    // 1️⃣ GET MENU ITEMS FOR BRANCH + SERVICE
     getMenuItems: builder.query<MenuItem[], { serviceId: string }>({
       async queryFn({ serviceId }, _api, _extraOptions, fetchWithBQ) {
         try {
@@ -57,7 +56,6 @@ export const restaurantApi = createApi({
       },
     }),
 
-    // 2️⃣ GET SINGLE MENU ITEM
     getMenuItemById: builder.query<MenuItem, { id: number; branchId?: string }>(
       {
         async queryFn({ id, branchId }, _api, _extraOptions, fetchWithBQ) {
@@ -118,7 +116,6 @@ export const restaurantApi = createApi({
   }),
 });
 
-// ---------- HOOKS ----------
 export const {
   useGetMenuItemsQuery,
   useGetMenuItemByIdQuery,

@@ -1,10 +1,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { Card, CardContent } from "@/components/ui/card";
+=======
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+>>>>>>> origin
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
+<<<<<<< HEAD
 import {
   ChevronLeft,
   Coffee,
@@ -18,6 +24,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+=======
+import { CallServiceModal } from "@/components/lodging/serviceModal";
+import InfoCard from "@/components/lodging/inforCard";
+import ImageDisplay from "@/components/shared/imageDisplay";
+import ImageGalleryModal from "@/components/shared/imageGallery";
+>>>>>>> origin
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation;
@@ -35,9 +47,7 @@ const amenityIcons: Record<string, React.ReactNode> = {
 
 const getImageUrl = (url?: string): string => {
   if (!url) return "/placeholder.svg";
-  // If URL already starts with http/https, return as is
   if (url.startsWith("http")) return url;
-  // Otherwise prepend the API base URL
   return BASE_API_URL + url;
 };
 
@@ -53,24 +63,57 @@ export default function AccommodationDetailsClient({
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
   const { data: decodedPayload } = useDecodedPayload(payload);
-  const branchId = decodedPayload?.branch?.id || "";
+  
+  const serviceId = decodedPayload?.services.find(
+    (s: any) => s.service_type.toLowerCase() === "lodging"
+  )?.id;
 
+<<<<<<< HEAD
   const backHref = `/branch/${branchId}/services/lodging${payload ? `?payload=${payload}` : ""
     }`;
+=======
+  const backHref = `/branch/services/${serviceId}${
+    payload ? `?payload=${payload}` : ""
+  }`;
+>>>>>>> origin
+
+  // Convert accommodation images to ImageDisplay format
+  const headerImages = accommodation.mainImage && accommodation.mainImage.length > 0
+    ? accommodation.mainImage.map(img => ({
+        id: img.id,
+        url: img.url,
+        image: img.url,
+      }))
+    : [];
 
   return (
     <>
-      {/* Header with Background Image */}
+      {/* Header with Background Image Carousel */}
       <div className="relative h-64 md:h-80 overflow-hidden">
-        <Image
-          src={selectedImage || "/placeholder.svg"}
-          alt={accommodation.typeName}
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50" />
+        {headerImages.length > 0 ? (
+          <div className="relative w-full h-full">
+            <ImageDisplay
+              images={headerImages}
+              alt={accommodation.typeName}
+              height="h-full"
+              className="w-full"
+              baseUrl={BASE_API_URL}
+            />
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/50 pointer-events-none" />
+          </div>
+        ) : (
+          <>
+            <Image
+              src="/placeholder.svg"
+              alt={accommodation.typeName}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/50" />
+          </>
+        )}
 
         {/* Back Button */}
         <Link href={backHref} className="absolute top-4 left-4 z-10">
@@ -84,7 +127,7 @@ export default function AccommodationDetailsClient({
         </Link>
 
         {/* Title Overlay */}
-        <div className="absolute bottom-4 left-4 text-white">
+        <div className="absolute bottom-4 left-4 right-4 text-white z-10">
           <h1 className="text-3xl md:text-4xl font-bold text-balance">
             {accommodation.typeName}
           </h1>
@@ -106,41 +149,28 @@ export default function AccommodationDetailsClient({
               ${parseFloat(accommodation.pricePerNight || "0").toFixed(2)}
             </p>
           </div>
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-6 text-lg">
-            Book Now
+          <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2 mt-4">
+            Reserve Now
           </Button>
         </div>
 
         {/* Accommodation Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Room Size</p>
-              <p className="font-semibold text-lg">
-                {accommodation.roomSize
-                  ? `${accommodation.roomSize} sqm`
-                  : "N/A"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="p-2">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Max Guests</p>
-              <p className="font-semibold text-lg">
-                {accommodation.maxGuests || "N/A"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">
-                Bed Configuration
-              </p>
-              <p className="font-semibold text-lg">
-                {accommodation.bedConfiguration || "N/A"}
-              </p>
-            </CardContent>
-          </Card>
+          <InfoCard
+            label="Room Size"
+            value={
+              accommodation.roomSize ? `${accommodation.roomSize} sqm` : "N/A"
+            }
+          />
+          <InfoCard
+            className="p-2"
+            label="Max Guests"
+            value={accommodation.maxGuests}
+          />
+          <InfoCard
+            label="Bed Configuration"
+            value={accommodation.bedConfiguration}
+          />
         </div>
 
         {/* Description */}
@@ -175,36 +205,24 @@ export default function AccommodationDetailsClient({
           </div>
         </div>
 
-        {/* Gallery */}
+        {/* Gallery Thumbnails */}
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
             Gallery
           </h2>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-            {accommodation.mainImage && accommodation.mainImage.length > 0 ? (
-              accommodation.mainImage.map((img, idx) => (
-                <button
-                  key={img.id}
-                  onClick={() => setSelectedImage(getImageUrl(img.url))}
-                  className="relative overflow-hidden rounded-lg border-2 border-transparent hover:border-teal-600 transition-all w-full h-24"
-                >
-                  <Image
-                    src={getImageUrl(img.url) || "/placeholder.svg"}
-                    alt={`Gallery ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="120px"
-                  />
-                </button>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                No images available
-              </div>
-            )}
-          </div>
+          {accommodation.mainImage && accommodation.mainImage.length > 0 ? (
+            <ImageGalleryModal
+              images={accommodation.mainImage}
+              getUrl={getImageUrl}
+            />
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No images available
+            </div>
+          )}
         </div>
 
+<<<<<<< HEAD
         {/* CTA Section */}
         <div className="bg-teal-50 border border-teal-200 rounded-lg p-6 text-center mb-8">
           <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -215,6 +233,17 @@ export default function AccommodationDetailsClient({
           </p>
           <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2">
             Reserve Now
+=======
+        {/* Call Service Button */}
+        <div className="text-center mb-8">
+          <Button
+            variant="outline"
+            onClick={() => setCallModalOpen(true)}
+            className="flex items-center gap-2 border-teal-600 text-teal-600 hover:bg-teal-50 mx-auto"
+          >
+            <Phone className="w-4 h-4" />
+            Call Service
+>>>>>>> origin
           </Button>
         </div>
       </div>
