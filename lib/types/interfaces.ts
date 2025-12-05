@@ -36,7 +36,7 @@ export interface Accommodation {
   category: string;
   description?: string;
   available: boolean;
-  currency: Array<{ id: number; name: string; code: string }>;
+  currency: { id: number; name: string; code: string };
   pricePerNight: string
   amenities: Amenity[];
   maxGuests: number;

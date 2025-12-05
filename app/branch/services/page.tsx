@@ -10,7 +10,6 @@ export default function YourComponent() {
     const payload = searchParams.get("payload");
     if (payload) {
       try {
-        // Decode URL-safe base64 directly
         const decoded = JSON.parse(
           Buffer.from(payload, "base64url").toString("utf-8")
         );

@@ -44,7 +44,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     isLoading: loading,
     error,
     refetch,
-  } = useGetAccommodationsQuery(serviceId);
+  } = useGetAccommodationsQuery(serviceId, { skip: !serviceId });
 
   // Debug: Log the raw data
   console.log("Raw accommodations data:", accommodations);

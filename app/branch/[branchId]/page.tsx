@@ -15,7 +15,7 @@ export default function BranchPage() {
   })
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-green-50 to-white">
+    <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
       <Header />
 
       <div className="max-w-4xl mx-auto px-4 py-12">
