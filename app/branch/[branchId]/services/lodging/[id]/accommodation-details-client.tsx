@@ -1,16 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-import { Card, CardContent } from "@/components/ui/card";
-=======
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
->>>>>>> origin
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
-<<<<<<< HEAD
 import {
   ChevronLeft,
   Coffee,
@@ -22,14 +17,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-=======
-import { CallServiceModal } from "@/components/lodging/serviceModal";
+import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import InfoCard from "@/components/lodging/inforCard";
 import ImageDisplay from "@/components/shared/imageDisplay";
 import ImageGalleryModal from "@/components/shared/imageGallery";
->>>>>>> origin
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation;
@@ -68,14 +59,9 @@ export default function AccommodationDetailsClient({
     (s: any) => s.service_type.toLowerCase() === "lodging"
   )?.id;
 
-<<<<<<< HEAD
-  const backHref = `/branch/${branchId}/services/lodging${payload ? `?payload=${payload}` : ""
-    }`;
-=======
   const backHref = `/branch/services/${serviceId}${
     payload ? `?payload=${payload}` : ""
   }`;
->>>>>>> origin
 
   // Convert accommodation images to ImageDisplay format
   const headerImages = accommodation.mainImage && accommodation.mainImage.length > 0
@@ -220,31 +206,6 @@ export default function AccommodationDetailsClient({
               No images available
             </div>
           )}
-        </div>
-
-<<<<<<< HEAD
-        {/* CTA Section */}
-        <div className="bg-teal-50 border border-teal-200 rounded-lg p-6 text-center mb-8">
-          <h3 className="text-xl font-semibold text-foreground mb-2">
-            Ready to Book?
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            Secure your stay today and enjoy a wonderful experience
-          </p>
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2">
-            Reserve Now
-=======
-        {/* Call Service Button */}
-        <div className="text-center mb-8">
-          <Button
-            variant="outline"
-            onClick={() => setCallModalOpen(true)}
-            className="flex items-center gap-2 border-teal-600 text-teal-600 hover:bg-teal-50 mx-auto"
-          >
-            <Phone className="w-4 h-4" />
-            Call Service
->>>>>>> origin
-          </Button>
         </div>
       </div>
     </>
