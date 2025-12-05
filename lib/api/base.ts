@@ -1,7 +1,7 @@
 import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const baseQuery = fetchBaseQuery({
-  baseUrl: "http://192.168.1.55:8001/",
+  baseUrl: "https://api.dev.ihakken.com/",
   prepareHeaders: (headers) => {
     // read auth token and device fingerprint from localStorage
     const token = localStorage.getItem("auth_token");
@@ -19,5 +19,5 @@ export const baseQuery = fetchBaseQuery({
   },
 });
 
-export const BASE_API_URL = "http://192.168.1.55:8001/";
+export const BASE_API_URL = "https://api.dev.ihakken.com/";
 

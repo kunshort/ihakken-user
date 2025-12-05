@@ -144,3 +144,5 @@ export interface MenuCategoryResponse {
   next: string | null;
   data: MenuCategory[];
 }
+
+export type ImageValue = File | { id?: number | string; image: string; url?: string };
