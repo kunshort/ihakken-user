@@ -1,9 +1,29 @@
 "use client";
 
+<<<<<<< HEAD
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+=======
+import {
+  ChevronLeft,
+  Wifi,
+  Wind,
+  Coffee,
+  Dumbbell,
+  Users,
+  Phone,
+  House,
+  Bed,
+} from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import Image from "next/image";
+>>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
 import {
@@ -21,20 +41,22 @@ import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import InfoCard from "@/components/lodging/inforCard";
 import ImageDisplay from "@/components/shared/imageDisplay";
 import ImageGalleryModal from "@/components/shared/imageGallery";
+import IconFinder from "@/components/shared/findicon";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import GalleryComponent from "@/components/shared/imageGallery";
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation;
   branchId: string;
   selectedImageDefault: string;
 }
-
-const amenityIcons: Record<string, React.ReactNode> = {
-  WiFi: <Wifi className="w-5 h-5" />,
-  AC: <Wind className="w-5 h-5" />,
-  Breakfast: <Coffee className="w-5 h-5" />,
-  Spa: <Dumbbell className="w-5 h-5" />,
-  Concierge: <Users className="w-5 h-5" />,
-};
 
 const getImageUrl = (url?: string): string => {
   if (!url) return "/placeholder.svg";
@@ -53,24 +75,27 @@ export default function AccommodationDetailsClient({
 
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
-  const { data: decodedPayload } = useDecodedPayload(payload);
-  
-  const serviceId = decodedPayload?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "lodging"
+  const { data: decodedPayload } = useDecodePayloadQuery(payload);
+
+  const serviceId = decodedPayload?.services?.find(
+    (s: any) => s?.serviceType?.toLowerCase() === "lodging"
   )?.id;
 
-  const backHref = `/branch/services/${serviceId}${
+  const branchIdFromPayload = decodedPayload?.branch?.id || "";
+
+  const backHref = `/branch/${branchIdFromPayload}/services/lodging${
     payload ? `?payload=${payload}` : ""
   }`;
 
   // Convert accommodation images to ImageDisplay format
-  const headerImages = accommodation.mainImage && accommodation.mainImage.length > 0
-    ? accommodation.mainImage.map(img => ({
-        id: img.id,
-        url: img.url,
-        image: img.url,
-      }))
-    : [];
+  const headerImages =
+    accommodation.mainImage && accommodation.mainImage.length > 0
+      ? accommodation.mainImage.map((img) => ({
+          id: img.id,
+          url: img.url,
+          image: img.url,
+        }))
+      : [];
 
   return (
     <>
@@ -86,7 +111,7 @@ export default function AccommodationDetailsClient({
               baseUrl={BASE_API_URL}
             />
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/50 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50 pointer-events-none" />
           </div>
         ) : (
           <>
@@ -97,7 +122,7 @@ export default function AccommodationDetailsClient({
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/50" />
+            <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50" />
           </>
         )}
 
@@ -131,11 +156,12 @@ export default function AccommodationDetailsClient({
             <p className="text-sm text-muted-foreground mb-1">
               Price per night
             </p>
-            <p className="text-3xl font-bold text-teal-600">
-              ${parseFloat(accommodation.pricePerNight || "0").toFixed(2)}
+            <p className="text-3xl font-bold text-[#004248]">
+              {accommodation.currency.code}
+              {parseFloat(accommodation.pricePerNight || "0").toFixed(2)}
             </p>
           </div>
-          <Button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2 mt-4">
+          <Button className="bg-[#004248] hover:bg-[#003737] text-white px-8 py-2 mt-4">
             Reserve Now
           </Button>
         </div>
@@ -143,17 +169,19 @@ export default function AccommodationDetailsClient({
         {/* Accommodation Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           <InfoCard
+            icon={<House className="w-5 h-5" />}
             label="Room Size"
             value={
               accommodation.roomSize ? `${accommodation.roomSize} sqm` : "N/A"
             }
           />
           <InfoCard
-            className="p-2"
+            icon={<Users className="w-5 h-5" />}
             label="Max Guests"
             value={accommodation.maxGuests}
           />
           <InfoCard
+            icon={<Bed className="w-5 h-5" />}
             label="Bed Configuration"
             value={accommodation.bedConfiguration}
           />
@@ -161,7 +189,7 @@ export default function AccommodationDetailsClient({
 
         {/* Description */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-3 text-foreground">
+          <h2 className="text-2xl  mb-3 text-foreground">
             About This Accommodation
           </h2>
           <p className="text-muted-foreground leading-relaxed">
@@ -171,17 +199,15 @@ export default function AccommodationDetailsClient({
 
         {/* Amenities */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Amenities & Services
-          </h2>
+          <h2 className="text-2xl  mb-4 text-foreground">Amenities</h2>
           <div className="flex flex-wrap gap-3">
             {accommodation.amenities && accommodation.amenities.length > 0 ? (
               accommodation.amenities.map((amenity) => (
                 <div
                   key={amenity.id}
-                  className="flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg border border-teal-200"
+                  className="flex items-center gap-2 bg-[#E0F2F1] text-[#004248] px-2 py-1 rounded-lg border border-[#B2DFDB]"
                 >
-                  {amenityIcons[amenity.name] || null}
+                  {amenity.icon && <IconFinder name={amenity.icon} />}
                   <span className="font-medium">{amenity.name}</span>
                 </div>
               ))
@@ -192,6 +218,7 @@ export default function AccommodationDetailsClient({
         </div>
 
         {/* Gallery Thumbnails */}
+<<<<<<< HEAD
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4 text-foreground">
             Gallery
@@ -206,6 +233,23 @@ export default function AccommodationDetailsClient({
               No images available
             </div>
           )}
+=======
+        <GalleryComponent
+          images={accommodation.mainImage || []}
+          getImageUrl={getImageUrl}
+        />
+
+        {/* Call Service Button */}
+        <div className="text-center mb-8">
+          <Button
+            variant="outline"
+            onClick={() => setCallModalOpen(true)}
+            className="flex items-center gap-2 border-[#004248] text-[#004248] hover:bg-[#E0F2F1] mx-auto"
+          >
+            <Phone className="w-4 h-4" />
+            Call Service
+          </Button>
+>>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
         </div>
       </div>
     </>

@@ -1,84 +1,55 @@
-"use client";
+import Image from 'next/image';
+import { useState } from 'react';
 
-import { useState } from "react";
-import Image from "next/image";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogOverlay,
-} from "@/components/ui/dialog";
-import { X } from "lucide-react";
-
-interface GalleryProps {
-  images: { id: string | number; url: string }[];
-  getUrl: (url: string) => string;
-}
-
-export default function ImageGalleryModal({ images, getUrl }: GalleryProps) {
-  const [activeImage, setActiveImage] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+const GalleryComponent = ({ images, getImageUrl }: { images: any[]; getImageUrl: (url?: string) => string }) => {
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
-    <>
-      {/* Thumbnails */}
+    <div className="mb-8">
+      <h2 className="text-2xl mb-4 text-foreground">Gallery</h2>
+      
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-        {images.map((img) => (
-          <Dialog
-            key={img.id}
-            open={isOpen && activeImage === getUrl(img.url)}
-            onOpenChange={(open) => {
-              setIsOpen(open);
-              if (!open) setActiveImage(null);
-            }}
-          >
-            <DialogTrigger asChild>
-              <button
-                onClick={() => {
-                  setActiveImage(getUrl(img.url));
-                  setIsOpen(true);
-                }}
-                className="relative h-24 w-full overflow-hidden rounded-lg border-2 border-transparent hover:border-teal-600 transition-all"
-              >
-                <Image
-                  src={getUrl(img.url)}
-                  alt="Thumbnail"
-                  fill
-                  className="object-cover"
-                  sizes="120px"
-                />
-              </button>
-            </DialogTrigger>
-
-            <DialogContent
-              className="max-w-none w-screen h-screen p-0 border-0 bg-black/90 flex items-center justify-center"
-              hideCloseButton
+        {images && images.length > 0 ? (
+          images.map((img, idx) => (
+            <button
+              key={img.id || idx}
+              onClick={() => setSelectedImage(getImageUrl(img.url))}
+              className="relative overflow-hidden rounded border-2 border-transparent hover:border-teal-600 transition-all w-full h-24"
             >
-              {/* Click anywhere to close */}
-              <div
-                className="absolute inset-0 cursor-pointer"
-                onClick={() => setIsOpen(false)}
+              <Image
+                src={getImageUrl(img.url) || "/placeholder.svg"}
+                alt={`Gallery ${idx + 1}`}
+                fill
+                className="object-cover"
+                sizes="120px"
               />
-
-              {/* Image container */}
-              <div
-                className="relative w-[90%] max-w-6xl h-[90vh] z-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {activeImage && (
-                  <Image
-                    src={activeImage}
-                    alt="Large view"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        ))}
+            </button>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No images available
+          </div>
+        )}
       </div>
-    </>
+
+      {/* Just the image - same size as modal */}
+      {selectedImage && (
+        <div 
+          className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 max-w-3xl w-full h-96"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative w-full h-full rounded-lg overflow-hidden border bg-white shadow-lg">
+            <Image
+              src={selectedImage}
+              alt="Selected Image"
+              fill
+              className="object-contain"
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default GalleryComponent;

@@ -3,7 +3,7 @@ import { ServicesGrid } from "@/components/services-grid";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Service } from "@/lib/types/interfaces";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload"; // ← use the hook
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 
 // Transform decoded services to match ServicesGrid's expected format
 function transformServices(decodedServices: any[]): Service[] {
@@ -14,10 +14,10 @@ function transformServices(decodedServices: any[]): Service[] {
     description: `Explore our ${service.name.toLowerCase()} service`,
     available: true,
     slug: service.id.toLowerCase(),
-    type: service.service_type,
-    service_type: service.service_type,
+    type: service.serviceType,
+    service_type: service.serviceType,
     icon: undefined,
-    image: undefined,
+    image: service.image,
   }));
 }
 
@@ -25,7 +25,7 @@ export default function ServicePage() {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
 
-  const { data: payloadData, error } = useDecodedPayload(payload);
+  const { data: payloadData, error } = useDecodePayloadQuery(payload);
 
   const [transformedServices, setTransformedServices] = useState<Service[]>([]);
 
@@ -64,7 +64,13 @@ export default function ServicePage() {
             role="alert"
           >
             <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
+            <span className="block sm:inline">
+              {error && "status" in error && error.status
+                ? `Error ${error.status}: ${JSON.stringify(error.data)}`
+                : error && "message" in error
+                ? error.message
+                : "An unknown error occurred"}
+            </span>
           </div>
         )}
 
@@ -91,8 +97,6 @@ export default function ServicePage() {
             </div>
           )
         )}
-
-       
       </div>
     </div>
   );

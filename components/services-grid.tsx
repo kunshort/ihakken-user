@@ -20,13 +20,16 @@ export function ServicesGrid({
   const payload = searchParams.get("payload") || "";
 
   const getServiceRoute = (service: Service) => {
-    const serviceType = service.service_type?.toLowerCase() || "";
+    const serviceType = service.service_type?.toLowerCase();
 
     const routeMap: Record<string, string> = {
       restaurant: `/branch/${branchId}/services/restaurant`,
       lodging: `/branch/${branchId}/services/lodging`,
     };
-    const route = routeMap[serviceType] || `/branch/services/${service.id}`;
+    const route =
+      serviceType && routeMap[serviceType]
+        ? routeMap[serviceType]
+        : `/branch/services/${service.id}`;
     return payload ? `${route}?payload=${payload}` : route;
   };
 
@@ -84,9 +87,15 @@ export function ServicesGrid({
           </Card>
         );
 
-        return hideLinks ? (
-          <div key={service.id}>{cardContent}</div>
-        ) : (
+        if (hideLinks) {
+          return (
+            <div key={service.id}>
+              {cardContent}
+            </div>
+          );
+        }
+
+        return (
           <Link key={service.id} href={getServiceRoute(service)}>
             {cardContent}
           </Link>

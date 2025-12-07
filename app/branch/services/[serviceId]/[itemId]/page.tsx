@@ -1,71 +1,109 @@
-"use client"
+"use client";
 
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { useParams, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import AccommodationDetailsClient from "@/app/branch/services/[serviceId]/accommodation-details-client"
-
-function decodePayload(payload: string) {
-  try {
-    const base64Url = payload.split(".")[1]
-    if (!base64Url) return null
-
-    const base64 = base64Url
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(
-        base64Url.length + ((4 - (base64Url.length % 4)) % 4),
-        "="
-      )
-
-    return JSON.parse(atob(base64))
-  } catch (err) {
-    console.error("[v0] Failed to decode payload:", err)
-    return null
-  }
-}
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import AccommodationDetailsClient from "@/app/branch/[branchId]/services/lodging/[id]/accommodation-details-client";
+import {
+  useGetAccommodationByIdQuery,
+  useDecodePayloadQuery,
+} from "@/lib/api/lodging";
+import { Accommodation } from "@/lib/types/interfaces";
 
 export default function ItemDetailsPage() {
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const serviceId = params.serviceId as string
-  const itemId = params.itemId as string
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const serviceId = params.serviceId as string;
+  const itemId = params.itemId as string;
+  const payload = searchParams.get("payload") || "";
 
-  const [branchId, setBranchId] = useState<string | null>(null)
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
-    const payload = searchParams.get("payload")
+    if (!decoded) return;
+    if (decoded.token) localStorage.setItem("auth_token", decoded.token);
+    if ((decoded as any).device_fingerprint)
+      localStorage.setItem(
+        "device_fingerprint",
+        (decoded as any).device_fingerprint
+      );
+  }, [decoded]);
 
-    if (payload) {
-      const decoded = decodePayload(payload)
-      if (decoded?.branchId) {
-        setBranchId(decoded.branchId)
-      }
+  const branchId = decoded?.branch?.id || "";
+
+  const {
+    data: accommodation,
+    isLoading,
+    error,
+  } = useGetAccommodationByIdQuery(
+    branchId && itemId
+      ? { branchId, accommodationId: itemId }
+      : { branchId: "", accommodationId: "" },
+    {
+      skip: !branchId || !itemId,
     }
-  }, [searchParams])
-  if (!branchId) {
+  );
+
+  if (payloadLoading || (!branchId && !payloadLoading)) {
     return (
       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
         <Header />
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-          <p className="text-destructive">Invalid access link.</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            Loading accommodation details...
+          </p>
         </div>
         <Footer />
       </main>
-    )
+    );
   }
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">
+            Loading accommodation details...
+          </p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  if (error || !accommodation) {
+    return (
+      <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+          <p className="text-destructive">
+            Failed to load accommodation details.
+          </p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
   if (serviceId === "lodging") {
     return (
       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
         <Header />
         <AccommodationDetailsClient
+          accommodation={accommodation}
           branchId={branchId}
-          accommodationId={itemId}
+          selectedImageDefault={
+            accommodation.mainImage?.[0]?.url || "/placeholder.svg"
+          }
         />
         <Footer />
       </main>
-    )
+    );
   }
   return (
     <main className="min-h-screen">
@@ -75,5 +113,5 @@ export default function ItemDetailsPage() {
       </div>
       <Footer />
     </main>
-  )
+  );
 }

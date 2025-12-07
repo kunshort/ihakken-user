@@ -10,8 +10,22 @@ import { Accommodation } from "@/lib/types/interfaces";
 import { ChevronLeft, Filter, Phone, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import { AccommodationGrid } from "./accommodation-grid";
+=======
+import { useEffect, useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { AccommodationGrid } from "./accommodation-grid";
+import {
+  useGetAccommodationsQuery,
+  useDecodePayloadQuery,
+} from "@/lib/api/lodging";
+import { Accommodation } from "@/lib/types/interfaces";
+import { CallServiceModal } from "./serviceModal";
+import ErrorComponent from "@/components/shared/errorComponent";
+>>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -23,7 +37,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [callModalOpen, setCallModalOpen] = useState(false);
 
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
     if (!decoded) return;
@@ -35,6 +50,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       );
   }, [decoded]);
 
+<<<<<<< HEAD
   const lodgingService = decoded?.services.find(
     (s: any) => s.service_type.toLowerCase() === "lodging"
   );
@@ -42,13 +58,20 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const serviceId = lodgingService?.id;
 
   const branchServiceId = lodgingService?.branch_service;
+=======
+  const serviceId = useMemo(() => {
+    return decoded?.services.find(
+      (s: any) => s.serviceType?.toLowerCase() === "lodging"
+    )?.id;
+  }, [decoded?.services]);
+>>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 
   const {
     data: accommodationsData = [],
     isLoading: loading,
     error,
     refetch,
-  } = useGetAccommodationsQuery(serviceId);
+  } = useGetAccommodationsQuery(serviceId, { skip: !serviceId || !decoded });
 
   // Normalize accommodations to ensure they all have the required properties
   const accommodations: Accommodation[] = Array.isArray(accommodationsData)
@@ -119,7 +142,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     return "Failed to load accommodations. Please try again.";
   };
 
-  if (payloadLoading || (!serviceId && !payloadLoading)) {
+  if (payloadLoading || (!serviceId && !payloadLoading) || !decoded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
