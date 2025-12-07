@@ -14,7 +14,7 @@ import {
   useGetMenuCategoriesQuery,
 } from "@/lib/api/restaurant";
 import { useSearchParams } from "next/navigation";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { MenuItem } from "@/lib/types/interfaces";
 import { buildCategoryHierarchy } from "@/lib/utils";
@@ -33,7 +33,8 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
 
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
     if (!decoded) return;
@@ -62,7 +63,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   }, []);
 
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "restaurant"
+    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
   )?.id;
 
   // Fetch menu items

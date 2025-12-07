@@ -1,55 +1,61 @@
-'use client'
+"use client";
 
-import { useParams, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
-import { useSelector } from 'react-redux'
-import { createSelector } from '@reduxjs/toolkit'
-import { skipToken } from '@reduxjs/toolkit/query/react'
-import AccommodationDetailsClient from './accommodation-details-client'
-import { useDecodedPayload } from '@/hooks/useDecodedPayload'
-import { Accommodation } from '@/lib/types/interfaces'
-import { useGetAccommodationsQuery, lodgingApi } from '@/lib/api/lodging'
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { useSelector } from "react-redux";
+import { createSelector } from "@reduxjs/toolkit";
+import { skipToken } from "@reduxjs/toolkit/query/react";
+import AccommodationDetailsClient from "./accommodation-details-client";
+import { Accommodation } from "@/lib/types/interfaces";
+import {
+  useGetAccommodationsQuery,
+  useDecodePayloadQuery,
+  lodgingApi,
+} from "@/lib/api/lodging";
 
 // Define proper types for the API response structure
 interface Floor {
-  accommodations?: Accommodation[]
+  accommodations?: Accommodation[];
 }
 
 interface AccommodationsResponse {
-  data?: Floor[]
+  data?: Floor[];
 }
 
 export default function AccommodationDetailsPage() {
-  const params = useParams()
-  const searchParams = useSearchParams()
-  
-  const id = params.id as string
-  const branchId = params.branchId as string
-  const payload = searchParams.get('payload') || ''
-  
+  const params = useParams();
+  const searchParams = useSearchParams();
+
+  const id = params.id as string;
+  const branchId = params.branchId as string;
+  const payload = searchParams.get("payload") || "";
+
   // Decode payload to get serviceId
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload)
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   // Store auth data in localStorage
   useEffect(() => {
-    if (!decoded) return
-    if (decoded.token) localStorage.setItem('auth_token', decoded.token)
+    if (!decoded) return;
+    if (decoded.token) localStorage.setItem("auth_token", decoded.token);
     if ((decoded as any).device_fingerprint)
       localStorage.setItem(
-        'device_fingerprint',
+        "device_fingerprint",
         (decoded as any).device_fingerprint
-      )
-  }, [decoded])
+      );
+  }, [decoded]);
 
   // Extract serviceId from decoded payload
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === 'lodging'
-  )?.id
+    (s: any) => s.service_type.toLowerCase() === "lodging"
+  )?.id;
 
   // Fetch accommodations using serviceId
-  const { data: accommodationsData, isLoading, error } = useGetAccommodationsQuery(
-    serviceId ? serviceId : skipToken
-  )
+  const {
+    data: accommodationsData,
+    isLoading,
+    error,
+  } = useGetAccommodationsQuery(serviceId ? serviceId : skipToken);
 
   // Create memoized selector for the specific accommodation
   const selectAccommodationById = useMemo(
@@ -57,33 +63,36 @@ export default function AccommodationDetailsPage() {
       createSelector(
         [lodgingApi.endpoints.getAccommodations.select(serviceId || skipToken)],
         (result) => {
-          const data = result?.data as AccommodationsResponse | Accommodation[] | undefined
-          
-          if (!data) return undefined
+          const data = result?.data as
+            | AccommodationsResponse
+            | Accommodation[]
+            | undefined;
+
+          if (!data) return undefined;
 
           // Handle array response
           if (Array.isArray(data)) {
-            return data.find((acc: Accommodation) => acc.id === id)
-          } 
-          
+            return data.find((acc: Accommodation) => acc.id === id);
+          }
+
           // Handle nested response with floors
-          if ('data' in data && Array.isArray(data.data)) {
+          if ("data" in data && Array.isArray(data.data)) {
             for (const floor of data.data) {
               const found = floor.accommodations?.find(
                 (acc: Accommodation) => acc.id === id
-              )
-              if (found) return found
+              );
+              if (found) return found;
             }
           }
-          
-          return undefined
+
+          return undefined;
         }
       ),
     [id, serviceId]
-  )
+  );
 
   // Get the accommodation from cache using selector
-  const accommodation = useSelector(selectAccommodationById)
+  const accommodation = useSelector(selectAccommodationById);
 
   // Loading state
   if (payloadLoading || (!serviceId && !payloadLoading)) {
@@ -91,10 +100,12 @@ export default function AccommodationDetailsPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading accommodation details...</p>
+          <p className="text-muted-foreground">
+            Loading accommodation details...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -102,10 +113,12 @@ export default function AccommodationDetailsPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading accommodation details...</p>
+          <p className="text-muted-foreground">
+            Loading accommodation details...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   // Error state
@@ -130,9 +143,9 @@ export default function AccommodationDetailsPage() {
           </div>
           <h1 className="text-2xl font-bold mb-4">Accommodation not found</h1>
           <p className="text-muted-foreground mb-6">
-            {error 
-              ? 'Unable to load accommodation details. Please try again.'
-              : 'The accommodation you are looking for does not exist or has been removed.'}
+            {error
+              ? "Unable to load accommodation details. Please try again."
+              : "The accommodation you are looking for does not exist or has been removed."}
           </p>
           {error && (
             <p className="text-sm text-muted-foreground mb-6">
@@ -140,14 +153,16 @@ export default function AccommodationDetailsPage() {
             </p>
           )}
           <a
-            href={`/branch/services/${serviceId}${payload ? `?payload=${payload}` : ''}`}
+            href={`/branch/services/${serviceId}${
+              payload ? `?payload=${payload}` : ""
+            }`}
             className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Back to Accommodations
           </a>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -155,8 +170,10 @@ export default function AccommodationDetailsPage() {
       <AccommodationDetailsClient
         accommodation={accommodation}
         branchId={branchId}
-        selectedImageDefault={accommodation.mainImage?.[0]?.url || '/placeholder.svg'}
+        selectedImageDefault={
+          accommodation.mainImage?.[0]?.url || "/placeholder.svg"
+        }
       />
     </div>
-  )
+  );
 }

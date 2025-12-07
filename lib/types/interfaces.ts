@@ -30,14 +30,16 @@ export interface FloorData {
 
 export interface Accommodation {
   id: string;
+  lodge: string;
+  floor: string;
   code: string;
   type: string;
   typeName: string;
-  category: string;
+  category: string; 
   description?: string;
   available: boolean;
   currency: { id: number; name: string; code: string };
-  pricePerNight: string
+  pricePerNight: string;
   amenities: Amenity[];
   maxGuests: number;
   recommendedGuests: number;
@@ -48,8 +50,10 @@ export interface Accommodation {
   childrenAllowed: boolean;
   bedConfiguration: string;
   mainImage?: { id: string; url: string }[];
-  // Remove floor property since it comes from parent FloorData
+  created_at: string;
+  updated_at: string;
 }
+
 
 export interface LodgingApiResponse {
   erc: number;
@@ -144,5 +148,27 @@ export interface MenuCategoryResponse {
   next: string | null;
   data: MenuCategory[];
 }
+
+export interface LodgingCategory {
+  id: string;
+  name: string;
+  children?: LodgingCategory[];
+}
+
+
+export interface NestedApiResponse {
+  erc: number;
+  msg: string;
+  total: number;
+  next: string | null;
+  data: {
+    erc: number;
+    msg: string;
+    total: number;
+    next: string | null;
+    data: FloorData[];
+  };
+}
+
 
 export type ImageValue = File | { id?: number | string; image: string; url?: string };

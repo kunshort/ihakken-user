@@ -1,8 +1,8 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-export default function YourComponent() {
+function ServicesPage() {
   const searchParams = useSearchParams();
   const [branchId, setBranchId] = useState(null);
 
@@ -30,5 +30,13 @@ export default function YourComponent() {
         <p className="text-red-600 text-20 mr-12">Invalid access link.</p>
       )}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ServicesPage />
+    </Suspense>
   );
 }

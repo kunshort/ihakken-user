@@ -15,7 +15,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
@@ -57,7 +57,7 @@ export default function AccommodationDetailsClient({
 
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
-  const { data: decodedPayload } = useDecodedPayload(payload);
+  const { data: decodedPayload } = useDecodePayloadQuery(payload);
 
   const serviceId = decodedPayload?.services.find(
     (s: any) => s.service_type.toLowerCase() === "lodging"
@@ -181,9 +181,7 @@ export default function AccommodationDetailsClient({
 
         {/* Amenities */}
         <div className="mb-8">
-          <h2 className="text-2xl  mb-4 text-foreground">
-            Amenities 
-          </h2>
+          <h2 className="text-2xl  mb-4 text-foreground">Amenities</h2>
           <div className="flex flex-wrap gap-3">
             {accommodation.amenities && accommodation.amenities.length > 0 ? (
               accommodation.amenities.map((amenity) => (
@@ -202,10 +200,10 @@ export default function AccommodationDetailsClient({
         </div>
 
         {/* Gallery Thumbnails */}
-         <GalleryComponent
-                  images={accommodation.mainImage}
-                  getImageUrl={getImageUrl}
-                />
+        <GalleryComponent
+          images={accommodation.mainImage || []}
+          getImageUrl={getImageUrl}
+        />
 
         {/* Call Service Button */}
         <div className="text-center mb-8">

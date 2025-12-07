@@ -5,8 +5,11 @@ import { Footer } from "@/components/footer";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import AccommodationDetailsClient from "@/app/branch/[branchId]/services/lodging/[id]/accommodation-details-client";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
-import { useGetAccommodationByIdQuery } from "@/lib/api/lodging";
+import {
+  useGetAccommodationByIdQuery,
+  useDecodePayloadQuery,
+} from "@/lib/api/lodging";
+import { Accommodation } from "@/lib/types/interfaces";
 
 export default function ItemDetailsPage() {
   const params = useParams();
@@ -15,7 +18,8 @@ export default function ItemDetailsPage() {
   const itemId = params.itemId as string;
   const payload = searchParams.get("payload") || "";
 
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
     if (!decoded) return;

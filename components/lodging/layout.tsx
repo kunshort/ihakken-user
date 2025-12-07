@@ -3,12 +3,14 @@
 import { Search, Filter, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AccommodationGrid } from "./accommodation-grid";
-import { useGetAccommodationsQuery } from "@/lib/api/lodging";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import {
+  useGetAccommodationsQuery,
+  useDecodePayloadQuery,
+} from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
 import { CallServiceModal } from "./serviceModal";
 import ErrorComponent from "@/components/shared/errorComponent";
@@ -23,7 +25,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [callModalOpen, setCallModalOpen] = useState(false);
 
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
     if (!decoded) return;
@@ -35,9 +38,11 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       );
   }, [decoded]);
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "lodging"
-  )?.id;
+  const serviceId = useMemo(() => {
+    return decoded?.services.find(
+      (s: any) => s.serviceType?.toLowerCase() === "lodging"
+    )?.id;
+  }, [decoded?.services]);
 
   const {
     data: accommodations = [] as Accommodation[],
@@ -81,9 +86,9 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   // Get error message
   const getErrorMessage = () => {
     if (!error) return "";
-    
+
     if (typeof error === "string") return error;
-    
+
     if ("status" in error) {
       if (error.status === "FETCH_ERROR") {
         return "Unable to connect to the server. Please check your internet connection.";
@@ -96,11 +101,11 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       }
       return `Error: ${error.status}`;
     }
-    
+
     if ("message" in error && typeof error.message === "string") {
       return error.message;
     }
-    
+
     return "Failed to load accommodations. Please try again.";
   };
 

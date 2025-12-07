@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGetMenuItemsQuery } from "@/lib/api/restaurant";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
@@ -44,40 +44,33 @@ export default function MenuItemDetailsPage() {
     Record<string, number>
   >({});
 
-  // Get decoded payload to find serviceId
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   const serviceId = decoded?.services.find(
     (s: any) => s.service_type.toLowerCase() === "restaurant"
   )?.id;
-
-  // Create stable query argument to prevent unnecessary re-renders
   const stableMenuQueryArg = useMemo(
     () => (serviceId ? { serviceId } : skipToken),
     [serviceId]
   );
 
-  // Fetch to populate cache with stable argument
   useGetMenuItemsQuery(stableMenuQueryArg);
 
-  // Create memoized selector to get specific menu item from cache
   const selectMenuItemById = useMemo(
     () =>
       createSelector(
         [restaurantApi.endpoints.getMenuItems.select(stableMenuQueryArg)],
         (result) => {
-          const items = result?.data?.data || [];
+          const items = result.data || [];
           return items.find((item: MenuItem) => item.id === itemId);
         }
       ),
     [stableMenuQueryArg, itemId]
   );
-
-  // Get the menu item from cache using selector
   const menuAssignment = useSelector(selectMenuItemById);
-
-  // If live data isn't found from the cache, try to find the item in our mock data.
-  const finalMenuAssignment = menuAssignment || mockMenuItemsData.find(item => item.id === itemId);
+  const finalMenuAssignment =
+    menuAssignment || mockMenuItemsData.find((item) => item.id === itemId);
 
   const updateQuantity = (
     type: "addOns" | "toppings" | "complements",
@@ -124,7 +117,8 @@ export default function MenuItemDetailsPage() {
     );
   }
 
-  const { menuItem, customPrice, currency, customizations } = finalMenuAssignment;
+  const { menuItem, customPrice, currency, customizations } =
+    finalMenuAssignment;
   const currencySymbol = currency?.[0]?.code || "";
 
   const price = customPrice || menuItem.price;
@@ -593,3 +587,4 @@ export default function MenuItemDetailsPage() {
     </div>
   );
 }
+

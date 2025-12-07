@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wifi, Wind, Coffee } from "lucide-react";
 import { Accommodation } from "@/lib/types/interfaces";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 
@@ -26,7 +26,7 @@ const amenityIcons: Record<string, React.ReactNode> = {
 export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
-  const { data: decodedPayload } = useDecodedPayload(payload);
+  const { data: decodedPayload } = useDecodePayloadQuery(payload);
 
   const branchId = decodedPayload?.branch?.id || "";
 
@@ -97,9 +97,12 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
 
                 <div className="flex items-center justify-between pt-4 border-t border-border">
                   <div>
-                    <p className="text-xs text-muted-foreground">Price per night</p>
+                    <p className="text-xs text-muted-foreground">
+                      Price per night
+                    </p>
                     <p className="text-xl font-bold text-[#004248]">
-                      {accommodation.currency.code}{price.toFixed(2)}
+                      {accommodation.currency.code}
+                      {price.toFixed(2)}
                     </p>
                   </div>
                   <Button className="bg-[#004248] hover:bg-[#003737] text-white px-8 py-2">
