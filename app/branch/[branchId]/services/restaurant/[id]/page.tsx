@@ -48,7 +48,7 @@ export default function MenuItemDetailsPage() {
     useDecodePayloadQuery(payload);
 
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "restaurant"
+    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
   )?.id;
   const stableMenuQueryArg = useMemo(
     () => (serviceId ? { serviceId } : skipToken),

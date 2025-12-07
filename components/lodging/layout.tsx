@@ -49,7 +49,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     isLoading: loading,
     error,
     refetch,
-  } = useGetAccommodationsQuery(serviceId, { skip: !serviceId });
+  } = useGetAccommodationsQuery(serviceId, { skip: !serviceId || !decoded });
 
   // Debug: Log the raw data
   console.log("Raw accommodations data:", accommodations);
@@ -109,7 +109,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     return "Failed to load accommodations. Please try again.";
   };
 
-  if (payloadLoading || (!serviceId && !payloadLoading)) {
+  if (payloadLoading || (!serviceId && !payloadLoading) || !decoded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>

@@ -59,8 +59,8 @@ export default function AccommodationDetailsClient({
   const payload = searchParams.get("payload") || "";
   const { data: decodedPayload } = useDecodePayloadQuery(payload);
 
-  const serviceId = decodedPayload?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "lodging"
+  const serviceId = decodedPayload?.services?.find(
+    (s: any) => s?.serviceType?.toLowerCase() === "lodging"
   )?.id;
 
   const branchIdFromPayload = decodedPayload?.branch?.id || "";

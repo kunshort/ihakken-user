@@ -47,7 +47,7 @@ export default function AccommodationDetailsPage() {
 
   // Extract serviceId from decoded payload
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "lodging"
+    (s: any) => s.serviceType?.toLowerCase() === "lodging"
   )?.id;
 
   // Fetch accommodations using serviceId
