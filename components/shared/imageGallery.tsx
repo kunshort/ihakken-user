@@ -6,7 +6,7 @@ const GalleryComponent = ({ images, getImageUrl }: { images: any[]; getImageUrl:
 
   return (
     <div className="mb-8">
-      <h2 className="text-2xl mb-4 text-foreground">Gallery</h2>
+      <h2 className="text-xl mb-4 text-foreground">Gallery</h2>
       
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {images && images.length > 0 ? (
