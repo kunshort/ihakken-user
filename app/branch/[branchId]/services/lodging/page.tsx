@@ -1,27 +1,91 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LodgingLayout } from "@/components/lodging/layout";
-import { Suspense } from "react";
+import { AiChatAssistant } from "@/components/shared/AiChatAssistant";
 
-export const metadata = {
-  title: "Lodging - Serenity Hub",
-  description: "Find your perfect accommodation at Serenity Hub",
-};
+interface DecodedPayload {
+  branch: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  services: Array<{
+    id: string;
+    name: string;
+    service_type: string;
+  }>;
+}
 
-export default async function LodgingPage({
-  params,
-}: {
-  params: Promise<{ branchId: string }>;
-}) {
-  const { branchId } = await params;
+function decodePayload(payload: string): DecodedPayload | null {
+  try {
+    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4) {
+      base64 += "=";
+    }
+    return JSON.parse(atob(base64));
+  } catch (e) {
+    console.error("Failed to decode payload:", e);
+    return null;
+  }
+}
+
+export default function LodgingPage() {
+  const searchParams = useSearchParams();
+  const [payloadData, setPayloadData] = useState<DecodedPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const payload = searchParams.get("payload");
+    if (!payload) setIsLoading(false);
+
+    if (payload) {
+      const data = decodePayload(payload);
+      if (data) {
+        setPayloadData(data);
+        setError(null);
+      } else {
+        setError("Failed to decode payload. Please try again.");
+      }
+    } else {
+      setError("No payload found. Please select a service.");
+    }
+    setIsLoading(false);
+  }, [searchParams]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !payloadData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-destructive mb-4">{error || "Unable to load lodging service"}</p>
+          <a href="/" className="text-primary hover:underline">
+            Go back to services
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const payload = searchParams.get("payload") || "";
 
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      }
-    >
-      <LodgingLayout branchId={branchId} />
-    </Suspense>
+    <>
+      <LodgingLayout branchId={payloadData.branch.id} />
+      <AiChatAssistant
+        branchId={payloadData.branch.id}
+        payload={payload}
+        serviceType="lodging"
+      />
+    </>
   );
 }

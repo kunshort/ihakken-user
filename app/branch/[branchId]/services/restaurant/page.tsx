@@ -3,8 +3,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import  RestaurantLayout  from "@/components/restaurant/layout";
-import { AiChatAssistant } from "@/components/restaurant/AiChatAssistant";
+import RestaurantLayout from "@/components/restaurant/layout";
+import { AiChatAssistant } from "@/components/shared/AiChatAssistant";
 
 interface DecodedPayload {
   branch: {
@@ -85,7 +85,11 @@ export default function RestaurantPage() {
   return (
     <>
       <RestaurantLayout branchId={payloadData.branch.id} />
-      <AiChatAssistant branchId={payloadData.branch.id} payload={payload} />
+      <AiChatAssistant
+        branchId={payloadData.branch.id}
+        payload={payload}
+        serviceType="restaurant"
+      />
     </>
   );
 }
