@@ -198,7 +198,7 @@ export function AiChatAssistant({
                               />
                             ))}
 
-                          {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
+                           {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
                             msg.items.map((item) => (
                               <RoomCard
                                 key={item.id}

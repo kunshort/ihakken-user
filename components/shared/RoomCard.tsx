@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { AIChatRoomItem } from "@/components/shared/AiChatAssistant";
@@ -14,8 +15,11 @@ interface RoomCardProps {
 }
 
 export function RoomCard({ room, branchId, payload, className }: RoomCardProps) {
+  const href = `/branch/${branchId}/services/lodging/${room.id}${payload ? `?payload=${payload}` : ""}`;
+
   return (
-    <Card className={cn("overflow-hidden shadow-md", className)}>
+    <Link href={href} className="block">
+      <Card className={cn("overflow-hidden shadow-md", className)}>
       <CardHeader className="p-0">
         {room.imageUrl && (
           <div className="relative w-full h-24">
@@ -45,6 +49,7 @@ export function RoomCard({ room, branchId, payload, className }: RoomCardProps) 
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </Link>
   );
 }
