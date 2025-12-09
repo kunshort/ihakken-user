@@ -2,11 +2,12 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useServiceCall } from "@/hooks/useServiceCall"
 import { useStaffUnits } from "@/hooks/useStaffUnits"
 import { Service } from "@/lib/types/service-calls"
-import { AlertCircle, CheckCircle, Clock, Loader2, LucideIcon, Phone, Shield, ShoppingCart, Users, Utensils, Wrench } from "lucide-react"
+import { isApiError } from "@/lib/utils/apiError"
+import { AlertCircle, CheckCircle, Clock, Loader2, LucideIcon, Phone, RefreshCw, Shield, ShoppingCart, Users, Utensils, Wrench } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { ServiceCallRoom } from "./service-call-room"
@@ -76,6 +77,7 @@ export function CallServiceModal({
 
     const [selectedService, setSelectedService] = useState<string | null>(null)
     const [retrying, setRetrying] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
 
     const services = useMemo(() => {
         if (propServices && propServices.length > 0) {
@@ -124,19 +126,17 @@ export function CallServiceModal({
             console.error('Failed to initiate call:', error)
             setSelectedService(null)
 
-            // Show appropriate error message
-            if (error instanceof Error) {
-                if (error.message.includes('network') || error.message.includes('Network')) {
-                    toast.error('Network error. Please check your internet connection and try again.')
-                } else if (error.message.includes('timeout') || error.message.includes('Timeout')) {
-                    toast.error('Connection timeout. Please try again in a moment.')
-                } else if (error.message.includes('Failed to fetch')) {
-                    toast.error('Cannot connect to server. Please try again later.')
-                } else {
-                    toast.error(`Call failed: ${error.message}`)
-                }
+            if (isApiError(error)) {
+                toast.error(error.toUserFriendlyMessage(), {
+                    description: error.code === 'UNAUTHORIZED'
+                        ? 'Please refresh the page and try again.'
+                        : undefined,
+                    icon: <AlertCircle className="w-5 h-5" />,
+                });
             } else {
-                toast.error('Unable to initiate call. Please try again.')
+                toast.error('Unable to initiate call. Please try again.', {
+                    icon: <AlertCircle className="w-5 h-5" />,
+                });
             }
         }
     }
@@ -149,7 +149,12 @@ export function CallServiceModal({
                     onOpenChange(false)
                 } catch (error) {
                     console.error('Failed to end call:', error)
-                    toast.error('Failed to end call properly. Please try again.')
+
+                    if (isApiError(error)) {
+                        toast.error(error.toUserFriendlyMessage());
+                    } else {
+                        toast.error('Failed to end call properly. Please try again.');
+                    }
                 }
             }
         } else {
@@ -161,18 +166,20 @@ export function CallServiceModal({
         try {
             await cancelCall()
             updateCallStatus('completed')
-            toast.success('Call ended successfully')
+            toast.success('Call ended successfully', {
+                icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+            })
         } catch (error) {
             console.error('Error ending call:', error)
 
-            if (error instanceof Error) {
-                if (error.message.includes('network') || error.message.includes('Network')) {
-                    toast.error('Network error. Call may not have ended properly.')
-                } else {
-                    toast.error(`Failed to end call: ${error.message}`)
-                }
+            if (isApiError(error)) {
+                toast.error(error.toUserFriendlyMessage(), {
+                    description: error.code === 'NETWORK_ERROR'
+                        ? 'Your call may not have ended properly on the server.'
+                        : undefined,
+                });
             } else {
-                toast.error('Failed to end call. Please try again.')
+                toast.error('Failed to end call. Please try again.');
             }
         }
     }
@@ -195,23 +202,39 @@ export function CallServiceModal({
         } catch (error) {
             console.error('Failed to retry call:', error)
 
-            if (error instanceof Error) {
-                if (error.message.includes('network') || error.message.includes('Network')) {
-                    toast.error('Network error. Please check your connection.')
-                } else {
-                    toast.error(`Failed to retry call: ${error.message}`)
-                }
+            if (isApiError(error)) {
+                toast.error(error.toUserFriendlyMessage());
             } else {
-                toast.error('Failed to retry call. Please try again.')
+                toast.error('Failed to retry call. Please try again.');
             }
         } finally {
             setRetrying(false)
         }
     }
 
-    // Helper function to get user-friendly error messages
+    const handleRefresh = async () => {
+        if (!branchServiceId) return
+
+        setRefreshing(true)
+        try {
+            await refetch()
+            if (formattedServices.length === 0) {
+                toast.info('Refreshed services list')
+            }
+        } catch (error) {
+            console.error('Failed to refresh services:', error)
+        } finally {
+            setRefreshing(false)
+        }
+    }
+
+    // Get user-friendly error message from any error
     const getErrorMessage = (error: any): string => {
         if (!error) return "An unknown error occurred";
+
+        if (isApiError(error)) {
+            return error.toUserFriendlyMessage();
+        }
 
         if (typeof error === 'string') return error;
 
@@ -233,9 +256,6 @@ export function CallServiceModal({
             if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized')) {
                 return "Access denied. Please check your permissions.";
             }
-            if (msg.includes('failed to initiate')) {
-                return "Unable to start call. The service may be busy or unavailable.";
-            }
 
             return error.message || "An error occurred";
         }
@@ -245,6 +265,25 @@ export function CallServiceModal({
         }
 
         return "An unexpected error occurred. Please try again.";
+    }
+
+    const getErrorSeverity = (error: any): 'low' | 'medium' | 'high' => {
+        if (isApiError(error)) {
+            switch (error.code) {
+                case 'NETWORK_ERROR':
+                case 'UNAUTHORIZED':
+                case 'SERVICE_UNAVAILABLE':
+                case 'SERVER_ERROR':
+                    return 'high';
+                case 'FORBIDDEN':
+                case 'RATE_LIMIT':
+                case 'TIMEOUT':
+                    return 'medium';
+                default:
+                    return 'low';
+            }
+        }
+        return 'medium';
     }
 
     const getStatusColor = (status: string) => {
@@ -264,6 +303,44 @@ export function CallServiceModal({
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
 
+    // Show toast for fetch errors
+    useEffect(() => {
+        if (fetchError && open) {
+            const message = getErrorMessage(fetchError);
+            const severity = getErrorSeverity(fetchError);
+
+            const toastOptions = {
+                duration: severity === 'high' ? 10000 : 5000,
+                icon: <AlertCircle className="w-5 h-5" />,
+            };
+
+            if (severity === 'high') {
+                toast.error(message, toastOptions);
+            } else {
+                toast.warning(message, toastOptions);
+            }
+        }
+    }, [fetchError, open]);
+
+    // Show toast for call errors
+    useEffect(() => {
+        if (error && open) {
+            const message = getErrorMessage(error);
+            const severity = getErrorSeverity(error);
+
+            const toastOptions = {
+                duration: severity === 'high' ? 10000 : 5000,
+                icon: <AlertCircle className="w-5 h-5" />,
+            };
+
+            if (severity === 'high') {
+                toast.error(message, toastOptions);
+            } else {
+                toast.warning(message, toastOptions);
+            }
+        }
+    }, [error, open]);
+
     // Clear error when modal closes
     useEffect(() => {
         if (!open) {
@@ -273,7 +350,6 @@ export function CallServiceModal({
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            {/* Proper spacing with background, shadow, and rounded corners */}
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white shadow-2xl rounded-2xl border border-gray-200 my-8">
                 <DialogHeader className="shrink-0 px-6 pt-6">
                     <div className="flex items-center justify-between">
@@ -295,37 +371,75 @@ export function CallServiceModal({
                         )}
                     </div>
 
-                    <DialogDescription className="text-gray-600">
+                    <div className="text-gray-600 text-sm mt-1">
                         {activeCall
                             ? `Connected to ${activeCall.serviceName} via secure video call`
                             : "Select a staff unit to start a call"
                         }
-                    </DialogDescription>
+                    </div>
                 </DialogHeader>
 
                 {/* Error Display */}
                 {(error || fetchError) && (
-                    <div className="shrink-0 bg-red-50 border border-red-200 rounded-lg p-4 mx-6">
+                    <div className={`
+                        shrink-0 border rounded-lg p-4 mx-6 mb-4
+                        ${getErrorSeverity(error || fetchError) === 'high'
+                            ? 'bg-red-50 border-red-200'
+                            : getErrorSeverity(error || fetchError) === 'medium'
+                                ? 'bg-amber-50 border-amber-200'
+                                : 'bg-gray-50 border-gray-200'
+                        }
+                    `}>
                         <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                            <AlertCircle className={`
+                                w-5 h-5 mt-0.5 flex-shrink-0
+                                ${getErrorSeverity(error || fetchError) === 'high'
+                                    ? 'text-red-500'
+                                    : getErrorSeverity(error || fetchError) === 'medium'
+                                        ? 'text-amber-500'
+                                        : 'text-gray-500'
+                                }
+                            `} />
                             <div className="flex-1">
-                                <p className="font-medium text-red-800">Connection Error</p>
-                                <p className="text-sm text-red-600 mt-1">
+                                <p className={`
+                                    font-medium mb-1
+                                    ${getErrorSeverity(error || fetchError) === 'high'
+                                        ? 'text-red-800'
+                                        : getErrorSeverity(error || fetchError) === 'medium'
+                                            ? 'text-amber-800'
+                                            : 'text-gray-800'
+                                    }
+                                `}>
+                                    {getErrorSeverity(error || fetchError) === 'high' ? 'Critical Error' :
+                                        getErrorSeverity(error || fetchError) === 'medium' ? 'Warning' : 'Information'}
+                                </p>
+                                <p className={`
+                                    text-sm mt-1
+                                    ${getErrorSeverity(error || fetchError) === 'high'
+                                        ? 'text-red-600'
+                                        : getErrorSeverity(error || fetchError) === 'medium'
+                                            ? 'text-amber-600'
+                                            : 'text-gray-600'
+                                    }
+                                `}>
                                     {getErrorMessage(error || fetchError)}
                                 </p>
                                 <div className="flex gap-2 mt-3">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => {
-                                            if (branchServiceId) {
-                                                refetch();
-                                                toast.info('Retrying connection...');
+                                        onClick={handleRefresh}
+                                        disabled={isLoading || refreshing}
+                                        className={`
+                                            ${getErrorSeverity(error || fetchError) === 'high'
+                                                ? 'border-red-300 text-red-700 hover:bg-red-50'
+                                                : getErrorSeverity(error || fetchError) === 'medium'
+                                                    ? 'border-amber-300 text-amber-700 hover:bg-amber-50'
+                                                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                                             }
-                                        }}
-                                        disabled={isLoading}
-                                        className="border-red-300 text-red-700 hover:bg-red-50"
+                                        `}
                                     >
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                                         Try Again
                                     </Button>
                                     {activeCall && (
@@ -334,7 +448,15 @@ export function CallServiceModal({
                                             size="sm"
                                             onClick={handleRetry}
                                             disabled={retrying}
-                                            className="bg-red-600 hover:bg-red-700 text-white"
+                                            className={`
+                                                ${getErrorSeverity(error || fetchError) === 'high'
+                                                    ? 'bg-red-600 hover:bg-red-700'
+                                                    : getErrorSeverity(error || fetchError) === 'medium'
+                                                        ? 'bg-amber-600 hover:bg-amber-700'
+                                                        : 'bg-gray-600 hover:bg-gray-700'
+                                                }
+                                                text-white
+                                            `}
                                         >
                                             {retrying ? 'Retrying...' : 'Retry Call'}
                                         </Button>
@@ -452,21 +574,24 @@ export function CallServiceModal({
 
                             {/* Empty State */}
                             {!isLoading && formattedServices.length === 0 && (
-                                <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-                                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <div className="text-center py-10 px-8 bg-gray-50 rounded-xl border border-gray-400">
+                                    <Users className="w-12 h-12 text-teal-600 mx-auto mb-4" />
                                     <h3 className="text-lg font-medium text-gray-700 mb-2">No Staff Units Available</h3>
-                                    <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                                        No staff units are currently available for this branch. Please check back later or contact support.
+                                    <p className="text-gray-600 text-sm mb-6 max-w-md mx-auto">
+                                        No staff units are currently available for this branch service. Please check again later.
                                     </p>
                                     {branchServiceId && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => refetch()}
-                                            disabled={isLoading}
-                                            className="border-gray-300 hover:bg-gray-50"
-                                        >
-                                            Check Again
-                                        </Button>
+                                        <div className="flex justify-center">
+                                            <Button
+                                                variant="outline"
+                                                onClick={handleRefresh}
+                                                disabled={isLoading || refreshing}
+                                                className="h-9 px-8 border-gray-500 hover:bg-gray-50 text-teal-600"
+                                            >
+                                                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                                                Refresh
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             )}

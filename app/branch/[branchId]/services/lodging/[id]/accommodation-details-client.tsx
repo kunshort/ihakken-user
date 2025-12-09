@@ -1,42 +1,24 @@
 "use client";
 
-<<<<<<< HEAD
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
-=======
-import {
-  ChevronLeft,
-  Wifi,
-  Wind,
-  Coffee,
-  Dumbbell,
-  Users,
-  Phone,
-  House,
-  Bed,
-} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
->>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
 import {
+  Bed,
   ChevronLeft,
   Coffee,
   Dumbbell,
+  House,
   Phone,
   Users,
   Wifi,
   Wind,
 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import InfoCard from "@/components/lodging/inforCard";
 import ImageDisplay from "@/components/shared/imageDisplay";
@@ -218,22 +200,6 @@ export default function AccommodationDetailsClient({
         </div>
 
         {/* Gallery Thumbnails */}
-<<<<<<< HEAD
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-foreground">
-            Gallery
-          </h2>
-          {accommodation.mainImage && accommodation.mainImage.length > 0 ? (
-            <ImageGalleryModal
-              images={accommodation.mainImage}
-              getUrl={getImageUrl}
-            />
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No images available
-            </div>
-          )}
-=======
         <GalleryComponent
           images={accommodation.mainImage || []}
           getImageUrl={getImageUrl}
@@ -249,7 +215,6 @@ export default function AccommodationDetailsClient({
             <Phone className="w-4 h-4" />
             Call Service
           </Button>
->>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
         </div>
       </div>
     </>

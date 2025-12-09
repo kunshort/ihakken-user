@@ -5,27 +5,16 @@ import ErrorComponent from "@/components/shared/errorComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDecodedPayload } from "@/hooks/useDecodedPayload";
-import { useGetAccommodationsQuery } from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
 import { ChevronLeft, Filter, Phone, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-<<<<<<< HEAD
-import { useEffect, useState } from "react";
-import { AccommodationGrid } from "./accommodation-grid";
-=======
 import { useEffect, useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { AccommodationGrid } from "./accommodation-grid";
 import {
   useGetAccommodationsQuery,
   useDecodePayloadQuery,
 } from "@/lib/api/lodging";
-import { Accommodation } from "@/lib/types/interfaces";
-import { CallServiceModal } from "./serviceModal";
-import ErrorComponent from "@/components/shared/errorComponent";
->>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -50,21 +39,11 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       );
   }, [decoded]);
 
-<<<<<<< HEAD
-  const lodgingService = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "lodging"
-  );
-
-  const serviceId = lodgingService?.id;
-
-  const branchServiceId = lodgingService?.branch_service;
-=======
   const serviceId = useMemo(() => {
     return decoded?.services.find(
       (s: any) => s.serviceType?.toLowerCase() === "lodging"
     )?.id;
   }, [decoded?.services]);
->>>>>>> 86246c4608728830932eb4984ec244f5b05e902f
 
   const {
     data: accommodationsData = [],
@@ -87,8 +66,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   console.log("Is array?", Array.isArray(accommodations));
   console.log("Length:", accommodations?.length);
 
-  console.log("Branch Service ID for staff units:", branchServiceId);
-  console.log("Lodging service object:", lodgingService);
 
   const filteredAccommodations = accommodations.filter(
     (accommodation) =>
@@ -248,19 +225,17 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       <div className="fixed bottom-6 left-6 z-50">
         <Button
           onClick={() => setCallModalOpen(true)}
-          className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white shadow-lg rounded-full px-6 py-6 h-auto"
-          disabled={!branchServiceId}
-          title={!branchServiceId ? "Staff services not available" : "Call Staff"}
+          className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white shadow-lg rounded-full w-14 h-14"
+          title={!serviceId ? "Staff services not available" : "Call Staff"}
         >
           <Phone className="w-5 h-5" />
-          <span className="font-medium">Call Staff</span>
         </Button>
       </div>
 
       <CallServiceModal
         open={callModalOpen}
         onOpenChange={setCallModalOpen}
-        branchServiceId={branchServiceId}
+        branchServiceId={serviceId}
         userInfo={{
           userId: decoded?.user_id || `user-${Date.now()}`,
           userName: decoded?.user_name || "User"
