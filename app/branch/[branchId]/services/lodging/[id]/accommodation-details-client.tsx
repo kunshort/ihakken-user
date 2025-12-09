@@ -21,7 +21,8 @@ import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
-import { CallServiceModal } from "@/components/lodging/serviceModal";
+
+import { CallServiceModal } from "@/components/lodging/service-call-modal";
 import InfoCard from "@/components/lodging/inforCard";
 import ImageDisplay from "@/components/shared/imageDisplay";
 import ImageGalleryModal from "@/components/shared/imageGallery";
@@ -254,8 +255,6 @@ export default function AccommodationDetailsClient({
           </>
         )}
       </div>
-
-      <CallServiceModal open={callModalOpen} onOpenChange={setCallModalOpen} />
     </>
   );
 }
