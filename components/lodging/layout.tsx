@@ -17,6 +17,7 @@ import { Accommodation } from "@/lib/types/interfaces";
 import EmptyContent from "../shared/noContent";
 import ErrorComponent from "../shared/errorComponent";
 import { AccommodationGrid } from "./accommodation-grid";
+import { LoadingSpinner } from "../shared/loading";
 
 interface LodgingLayoutProps {
   branchId: string;
@@ -69,6 +70,9 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     error: accommodationsError,
     refetch: refetchAccommodations,
   } = useGetAccommodationsQuery(serviceId || skipToken);
+  
+
+
 
   const accommodationsRaw: Accommodation[] = accommodationsData || [];
 
@@ -91,15 +95,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     refetchAccommodations();
   };
 
-  // Loading state
-  if (payloadLoading || (!serviceId && !payloadLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading accommodations...</p>
-      </div>
-    );
-  }
-
   // Check if there are no accommodations (empty state)
   const hasNoAccommodations =
     !isLoadingAccommodations &&
@@ -111,7 +106,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* DYNAMIC STICKY HEADER */}
+      {/* DYNAMIC STICKY HEADER - Always visible */}
       <div className="sticky top-0 z-20 bg-white shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
@@ -141,13 +136,15 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
                   isScrolled ? "text-xl" : "text-2xl md:text-3xl"
                 }`}
               >
-                Our Accommodations
+                {payloadLoading || (!serviceId && !payloadLoading)
+                  ? "Loading..."
+                  : "Our Accommodations"}
               </h1>
             </div>
           </div>
         </div>
 
-        {/* SEARCH BAR */}
+        {/* SEARCH BAR - Always visible */}
         <div className="border-b border-border px-4 py-4">
           <div className="max-w-6xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative">
@@ -157,33 +154,34 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={payloadLoading || (!serviceId && !payloadLoading)}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* LOADING STATE */}
-      {isLoadingAccommodations && (
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <p className="text-muted-foreground">Loading accommodations...</p>
-        </div>
-      )}
+      {/* MAIN CONTENT AREA */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+       
+        {/* LOADING STATE - Accommodations */}
+        {(payloadLoading || isLoadingAccommodations)  && (
+          <LoadingSpinner message="Loading accommodations..." />
+        )}
 
-      {/* ERROR STATE */}
-      {accommodationsError && !isLoadingAccommodations && (
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <ErrorComponent
-            errorMessage="Failed to load accommodations."
-            handleRetry={handleRetry}
-            isRetrying={isLoadingAccommodations}
-          />
-        </div>
-      )}
+        {/* ERROR STATE */}
+        {serviceId && accommodationsError && !isLoadingAccommodations && (
+          <div className="flex justify-center items-center w-full">
+            <ErrorComponent
+              errorMessage="Failed to load accommodations."
+              handleRetry={handleRetry}
+              isRetrying={isLoadingAccommodations}
+            />
+          </div>
+        )}
 
-      {/* EMPTY STATE - No accommodations */}
-      {hasNoAccommodations && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* EMPTY STATE - No accommodations */}
+        {serviceId && hasNoAccommodations && (
           <div className="min-h-[60vh] flex items-center justify-center">
             <EmptyContent
               message="No Accommodations Available"
@@ -194,12 +192,10 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
               }`}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* EMPTY STATE - No search results */}
-      {hasNoSearchResults && !hasNoAccommodations && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* EMPTY STATE - No search results */}
+        {serviceId && hasNoSearchResults && !hasNoAccommodations && (
           <div className="min-h-[60vh] flex items-center justify-center">
             <EmptyContent
               message="No Results Found"
@@ -208,18 +204,20 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
               onAction={() => setSearchQuery("")}
             />
           </div>
-        </div>
-      )}
-
-      {/* MAIN CONTENT */}
-      {!isLoadingAccommodations &&
-        !accommodationsError &&
-        !hasNoAccommodations &&
-        !hasNoSearchResults && (
-          <div className="max-w-6xl mx-auto px-4 py-8">
-            <AccommodationGrid accommodations={filteredAccommodations} branchId={branchId} />
-          </div>
         )}
+
+        {/* ACCOMMODATIONS GRID */}
+        {serviceId &&
+          !isLoadingAccommodations &&
+          !accommodationsError &&
+          !hasNoAccommodations &&
+          !hasNoSearchResults && (
+            <AccommodationGrid
+              accommodations={filteredAccommodations}
+              branchId={branchId}
+            />
+          )}
+      </div>
     </div>
   );
 }

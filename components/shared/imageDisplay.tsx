@@ -21,7 +21,7 @@ export default function ImageDisplay({
 
   if (!images || images.length === 0) {
     return (
-      <div className={`flex items-center justify-center ${height} bg-gray-100 rounded-lg ${className}`}>
+      <div className={`flex items-center justify-center ${height} bg-gray-100  ${className}`}>
         <p className="text-gray-400 text-sm">No images available</p>
       </div>
     );
@@ -54,7 +54,7 @@ export default function ImageDisplay({
   return (
     <div className={`relative ${className}`}>
       {/* Image Container */}
-      <div className={`relative ${height} overflow-hidden rounded-lg group`}>
+      <div className={`relative ${height} overflow-hidden  group`}>
         <img
           src={getImageUrl(images[currentIndex])}
           alt={`${alt} ${currentIndex + 1}`}
@@ -82,7 +82,7 @@ export default function ImageDisplay({
 
         {/* Image Counter */}
         {images.length > 1 && (
-          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded mb-10">
             {currentIndex + 1} / {images.length}
           </div>
         )}
