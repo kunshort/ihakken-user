@@ -1,21 +1,21 @@
-// layout.tsx updates
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Search, ChevronLeft } from "lucide-react";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
+import { CallServiceModal } from "@/components/lodging/service-call-modal";
+import ErrorComponent from "@/components/shared/errorComponent";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useStaffUnits } from "@/hooks/useStaffUnits";
 import {
-  useGetAccommodationsQuery,
-  useGetLodgingCategoriesQuery,
+  useDecodePayloadQuery,
+  useGetAccommodationsQuery
 } from "@/lib/api/lodging";
-import { useSearchParams } from "next/navigation";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
-import { skipToken } from "@reduxjs/toolkit/query/react";
 import { Accommodation } from "@/lib/types/interfaces";
+import { skipToken } from "@reduxjs/toolkit/query/react";
+import { ChevronLeft, Phone, Search } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import EmptyContent from "../shared/noContent";
-import ErrorComponent from "../shared/errorComponent";
 import { AccommodationGrid } from "./accommodation-grid";
 
 interface LodgingLayoutProps {
@@ -25,6 +25,7 @@ interface LodgingLayoutProps {
 export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
@@ -42,7 +43,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       );
   }, [decoded]);
 
-  // Effect to detect scroll position
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -62,7 +62,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     (s: any) => s.serviceType?.toLowerCase() === "lodging"
   )?.id;
 
-  // Fetch accommodations
   const {
     data: accommodationsData,
     isLoading: isLoadingAccommodations,
@@ -70,9 +69,16 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     refetch: refetchAccommodations,
   } = useGetAccommodationsQuery(serviceId || skipToken);
 
+  // Always call the hook, but pass serviceId (could be undefined)
+  const {
+    services: staffUnits,
+    isLoading: isLoadingStaffUnits,
+    error: staffUnitsError,
+    hasServices: hasStaffUnits
+  } = useStaffUnits(serviceId);
+
   const accommodationsRaw: Accommodation[] = accommodationsData || [];
 
-  // Filter accommodations for search
   const filteredAccommodations = useMemo(() => {
     if (!searchQuery) return accommodationsRaw;
 
@@ -86,12 +92,16 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     });
   }, [accommodationsRaw, searchQuery]);
 
-  // Handle retry for errors
+  const [isRetrying, setIsRetrying] = useState(false);
   const handleRetry = () => {
     refetchAccommodations();
   };
 
-  // Loading state
+  // Check if there are staff units to show call icon
+  const shouldShowCallIcon = useMemo(() => {
+    return staffUnits && staffUnits.length > 0;
+  }, [staffUnits]);
+
   if (payloadLoading || (!serviceId && !payloadLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -100,7 +110,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     );
   }
 
-  // Check if there are no accommodations (empty state)
   const hasNoAccommodations =
     !isLoadingAccommodations &&
     accommodationsRaw.length === 0 &&
@@ -109,23 +118,22 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   // Check if search returned no results
   const hasNoSearchResults = searchQuery && filteredAccommodations.length === 0;
 
+  const backLink = `/branch/services/${serviceId}${payload ? `?payload=${payload}` : ""}`;
+
   return (
     <div className="min-h-screen bg-background">
       {/* DYNAMIC STICKY HEADER */}
       <div className="sticky top-0 z-20 bg-white shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
-          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${
-            isScrolled ? "h-16" : "h-48 md:h-64"
-          }`}
+          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? "h-16" : "h-48 md:h-64"
+            }`}
         >
           <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
               <Link
-                href={`/branch/services/${serviceId}${
-                  payload ? `?payload=${payload}` : ""
-                }`}
+                href={backLink}
               >
                 <Button
                   variant="ghost"
@@ -137,9 +145,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
               </Link>
 
               <h1
-                className={`font-bold text-white transition-all duration-300 ease-in-out ${
-                  isScrolled ? "text-xl" : "text-2xl md:text-3xl"
-                }`}
+                className={`font-bold text-white transition-all duration-300 ease-in-out ${isScrolled ? "text-xl" : "text-2xl md:text-3xl"
+                  }`}
               >
                 Our Accommodations
               </h1>
@@ -189,9 +196,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
               message="No Accommodations Available"
               description="This lodging service hasn't added any accommodations yet. Please check back later."
               actionLabel="Go Back"
-              actionHref={`/branch/services/${serviceId}${
-                payload ? `?payload=${payload}` : ""
-              }`}
+              actionHref={backLink}
             />
           </div>
         </div>
@@ -220,6 +225,32 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
             <AccommodationGrid accommodations={filteredAccommodations} branchId={branchId} />
           </div>
         )}
+
+      {/* Conditionally show call icon only if there are staff units */}
+      {shouldShowCallIcon && !isLoadingStaffUnits && (
+        <div className="fixed bottom-6 left-6 z-50">
+          <Button
+            onClick={() => setCallModalOpen(true)}
+            className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white shadow-lg rounded-full w-14 h-14"
+            title="Call Staff"
+          >
+            <Phone className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
+      {/* Only show modal if there are staff units */}
+      {shouldShowCallIcon && (
+        <CallServiceModal
+          open={callModalOpen}
+          onOpenChange={setCallModalOpen}
+          branchServiceId={serviceId}
+          userInfo={{
+            userId: decoded?.user_id || `user-${Date.now()}`,
+            userName: decoded?.user_name || "User"
+          }}
+        />
+      )}
     </div>
   );
 }
