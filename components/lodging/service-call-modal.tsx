@@ -100,6 +100,11 @@ export function CallServiceModal({
         })
     }, [services, defaultStaffUnitId])
 
+    // Check if there are any staff units
+    const hasStaffUnits = useMemo(() => {
+        return formattedServices.length > 0
+    }, [formattedServices])
+
     const handleCall = async (serviceId: string, serviceName: string, staffUnitId?: string, isAvailable?: boolean) => {
         if (!isAvailable) {
             toast.error('Service is currently unavailable. Please try another service.')
@@ -348,6 +353,11 @@ export function CallServiceModal({
         }
     }, [open, clearError]);
 
+    // Don't render modal content if no staff units
+    if (!hasStaffUnits && !activeCall) {
+        return null;
+    }
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white shadow-2xl rounded-2xl border border-gray-200 my-8">
@@ -571,30 +581,6 @@ export function CallServiceModal({
                                     )
                                 })}
                             </div>
-
-                            {/* Empty State */}
-                            {!isLoading && formattedServices.length === 0 && (
-                                <div className="text-center py-10 px-8 bg-gray-50 rounded-xl border border-gray-400">
-                                    <Users className="w-12 h-12 text-teal-600 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium text-gray-700 mb-2">No Staff Units Available</h3>
-                                    <p className="text-gray-600 text-sm mb-6 max-w-md mx-auto">
-                                        No staff units are currently available for this branch service. Please check again later.
-                                    </p>
-                                    {branchServiceId && (
-                                        <div className="flex justify-center">
-                                            <Button
-                                                variant="outline"
-                                                onClick={handleRefresh}
-                                                disabled={isLoading || refreshing}
-                                                className="h-9 px-8 border-gray-500 hover:bg-gray-50 text-teal-600"
-                                            >
-                                                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                                                Refresh
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
                             {/* Service Stats - Only show when there are services */}
                             {formattedServices.length > 0 && (
