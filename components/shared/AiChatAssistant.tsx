@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
 import { aiServiceConfigs, ServiceType } from "@/components/shared/ai-service-configs";
+import { AIWebSocketClient, WSMessage, WSResponse } from "@/lib/ws/aiWebSocket";
 
 // Define the type for a menu item as it will be displayed in the chat
 export interface AIChatMenuItem {
@@ -66,7 +66,9 @@ export function AiChatAssistant({
   ]);
   const [currentInput, setCurrentInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [isWsConnected, setIsWsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<AIWebSocketClient | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,6 +77,71 @@ export function AiChatAssistant({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking]);
+
+  // Initialize WebSocket client on mount
+  useEffect(() => {
+    // Only run in browser
+    try {
+      const client = new AIWebSocketClient();
+      wsRef.current = client;
+
+      client.onOpen(() => {
+        setIsWsConnected(true);
+      });
+
+      client.onClose(() => {
+        setIsWsConnected(false);
+      });
+
+      client.onError(() => {
+        setIsWsConnected(false);
+      });
+
+      client.onMessage((msg: WSResponse) => {
+        // Map incoming WS responses to ChatMessage
+        // Backend is expected to send a JSON with shape { type, id?, payload: { text?, items?, cardType? } }
+        const payload = msg.payload || {};
+
+        // If payload contains items, render as item cards
+        if (payload.items && Array.isArray(payload.items) && payload.items.length > 0) {
+          const aiMsg: ChatMessage = {
+            text: payload.text || payload.title || activeConfig.specialResponse.responseText,
+            sender: "ai",
+            items: payload.items,
+            cardType: payload.cardType || activeConfig.specialResponse.cardType,
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          setIsThinking(false);
+          return;
+        }
+
+        // Otherwise, treat as text response
+        if (payload.text) {
+          const aiMsg: ChatMessage = { text: payload.text, sender: "ai" };
+          setMessages((prev) => [...prev, aiMsg]);
+          setIsThinking(false);
+          return;
+        }
+
+        // Generic fallback: if the server returns raw text in msg.payload
+        if (typeof msg.payload === "string") {
+          const aiMsg: ChatMessage = { text: msg.payload as string, sender: "ai" };
+          setMessages((prev) => [...prev, aiMsg]);
+          setIsThinking(false);
+        }
+      });
+
+      // Connect (will use NEXT_PUBLIC_AI_WS_URL if provided)
+      client.connect();
+
+      return () => {
+        client.disconnect();
+        wsRef.current = null;
+      };
+    } catch (err) {
+      console.warn("AiChatAssistant: failed to init WS client", err);
+    }
+  }, [serviceType]);
 
   // Prevent background scrolling when chat is open
   useEffect(() => {
@@ -104,12 +171,54 @@ export function AiChatAssistant({
 
   const sendMessage = () => {
     if (currentInput.trim()) {
-      const userMessage: ChatMessage = { text: currentInput, sender: "user" };
+      const textToSend = currentInput;
+      const userMessage: ChatMessage = { text: textToSend, sender: "user" };
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setCurrentInput("");
       setIsThinking(true);
 
-      const lowerCaseInput = currentInput.toLowerCase();
+      // If WS is connected, send the message to the server and wait for response
+      if (isWsConnected && wsRef.current) {
+        const clientId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        const msg: WSMessage = {
+          type: "user_message",
+          id: clientId,
+          payload: {
+            text: textToSend,
+            branchId,
+            payload,
+            serviceType,
+          },
+        };
+        const ok = wsRef.current.send(msg);
+        if (!ok) {
+          // fallback to mock if send failed
+          setTimeout(() => {
+            const lowerCaseInput = textToSend.toLowerCase();
+            const isSpecialRequest = activeConfig.specialResponse.keywords.some(
+              (keyword) => lowerCaseInput.includes(keyword)
+            );
+            let aiMessage: ChatMessage;
+            if (isSpecialRequest) {
+              aiMessage = {
+                text: activeConfig.specialResponse.responseText,
+                sender: "ai",
+                items: activeConfig.specialResponse.data,
+                cardType: activeConfig.specialResponse.cardType,
+              };
+            } else {
+              const randomReply = activeConfig.mockReplies[Math.floor(Math.random() * activeConfig.mockReplies.length)];
+              aiMessage = { text: randomReply, sender: "ai" };
+            }
+            setMessages((prev) => [...prev, aiMessage]);
+            setIsThinking(false);
+          }, 500);
+        }
+        return;
+      }
+
+      // No WS: fall back to existing mock behavior
+      const lowerCaseInput = textToSend.toLowerCase();
       const isSpecialRequest = activeConfig.specialResponse.keywords.some(
         (keyword) => lowerCaseInput.includes(keyword)
       );
