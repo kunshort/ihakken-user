@@ -241,17 +241,7 @@ export default function AccommodationDetailsClient({
               getImageUrl={getImageUrl}
             />
 
-            {/* Call Service Button */}
-            <div className="text-center mb-8">
-              <Button
-                variant="outline"
-                onClick={() => setCallModalOpen(true)}
-                className="flex items-center gap-2 border-[#004248] text-[#004248] hover:bg-[#E0F2F1] mx-auto"
-              >
-                <Phone className="w-4 h-4" />
-                Call Service
-              </Button>
-            </div>
+            
           </>
         )}
       </div>

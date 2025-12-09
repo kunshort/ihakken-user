@@ -101,9 +101,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     refetchAccommodations();
   };
 
-<<<<<<< HEAD
   // Check if there are no accommodations (empty state)
-=======
   // Check if there are staff units to show call icon
   const shouldShowCallIcon = useMemo(() => {
     return staffUnits && staffUnits.length > 0;
@@ -117,7 +115,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     );
   }
 
->>>>>>> origin
   const hasNoAccommodations =
     !isLoadingAccommodations &&
     accommodationsRaw.length === 0 &&
@@ -146,7 +143,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="bg-white/20 hover:bg-white/30 flex-shrink-0"
+                  className="bg-white/20 hover:bg-white/30 shrink-0"
                 >
                   <ChevronLeft className="w-5 h-5 text-white" />
                 </Button>
@@ -224,7 +221,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           </div>
         )}
 
-<<<<<<< HEAD
         {/* ACCOMMODATIONS GRID */}
         {serviceId &&
           !isLoadingAccommodations &&
@@ -237,7 +233,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
             />
           )}
       </div>
-=======
       {/* Conditionally show call icon only if there are staff units */}
       {shouldShowCallIcon && !isLoadingStaffUnits && (
         <div className="fixed bottom-6 left-6 z-50">
@@ -263,7 +258,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           }}
         />
       )}
->>>>>>> origin
     </div>
   );
 }
