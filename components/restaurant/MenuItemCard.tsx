@@ -81,7 +81,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
           <h4 className="font-semibold text-foreground text-sm line-clamp-2 mb-1">{item.name}</h4>
           <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.shortDescription}</p>
           <div className="flex items-center justify-between text-sm">
-            <p className="font-bold text-teal-600">
+            <p className="font-bold text-[#004248]">
               {currencySymbol} {item.price.toFixed(2)}
             </p>
             {prepTimeFormatted && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />{prepTimeFormatted}</span>}

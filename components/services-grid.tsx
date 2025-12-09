@@ -1,9 +1,10 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Service } from "@/lib/types/interfaces";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Service } from "@/lib/types/interfaces";
+import { BASE_API_URL } from "@/lib/api/base";
 
 interface ServicesGridProps {
   services: Service[];
@@ -41,7 +42,7 @@ export function ServicesGrid({
             <div className="relative h-48 overflow-hidden bg-linear-to-br from-teal-500 to-teal-700">
               {service.image ? (
                 <img
-                  src={service.image}
+                  src={service.image.startsWith('http') ? service.image : BASE_API_URL + service.image}
                   alt={service.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

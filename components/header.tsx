@@ -6,7 +6,7 @@ export function Header() {
     <header className="bg-white border-b border-border">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-linear-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">SH</span>
           </div>
           <span className="font-semibold text-foreground">Serenity Hub</span>

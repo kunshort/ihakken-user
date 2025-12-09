@@ -81,7 +81,7 @@ export function MenuGrid({ itemsByCategory, categories, branchId }: MenuGridProp
             {/* CATEGORY HEADER */}
             <div className="mb-6 pb-4 border-b border-teal-200">
               <h2 className="text-2xl font-bold text-teal-800 flex items-center gap-3">
-                <div className="w-2 h-8 bg-teal-500 rounded-full"></div>
+                <div className="w-2 h-8 bg-[#004248] rounded-full"></div>
                 {categoryName}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 ml-5">
@@ -110,7 +110,7 @@ export function MenuGrid({ itemsByCategory, categories, branchId }: MenuGridProp
                     item={cardItem}
                     branchId={branchId}
                     payload={payload}
-                    className="w-full h-full" // Ensure it fills the grid cell
+                    className="w-full h-full" 
                   />
                 );
               })}

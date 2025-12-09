@@ -13,6 +13,7 @@ import { BASE_API_URL } from "@/lib/api/base";
 
 interface AccommodationGridProps {
   accommodations: Accommodation[];
+  branchId: string;
 }
 
 const amenityIcons: Record<string, React.ReactNode> = {
@@ -23,12 +24,9 @@ const amenityIcons: Record<string, React.ReactNode> = {
   Concierge: <span className="text-xs">🔔</span>,
 };
 
-export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
+export function AccommodationGrid({ accommodations, branchId }: AccommodationGridProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
-  const { data: decodedPayload } = useDecodePayloadQuery(payload);
-
-  const branchId = decodedPayload?.branch?.id || "";
 
   if (!accommodations || accommodations.length === 0) {
     return (

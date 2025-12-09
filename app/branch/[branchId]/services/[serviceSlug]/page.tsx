@@ -7,14 +7,14 @@ export default async function ServicePage(props: {
   params: Promise<{ branchId: string; serviceSlug: string }>
 }) {
   const params = await props.params
-  const { serviceSlug } = params
+  const { branchId, serviceSlug } = params
 
   // Route to appropriate service component based on slug
   switch (serviceSlug) {
     case "lodging":
-      return <LodgingLayout />
+      return <LodgingLayout branchId={branchId} />
     case "restaurant":
-      return <RestaurantLayout />
+      return <RestaurantLayout branchId={branchId} />
     case "gym":
       return (
         <main className="min-h-screen bg-background">

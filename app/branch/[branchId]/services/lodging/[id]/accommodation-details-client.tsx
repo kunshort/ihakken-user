@@ -93,7 +93,7 @@ export default function AccommodationDetailsClient({
               baseUrl={BASE_API_URL}
             />
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50 pointer-events-none" />
+            {/* <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50 pointer-events-none" /> */}
           </div>
         ) : (
           <>
@@ -138,7 +138,7 @@ export default function AccommodationDetailsClient({
             <p className="text-sm text-muted-foreground mb-1">
               Price per night
             </p>
-            <p className="text-3xl font-bold text-[#004248]">
+            <p className="text-2xl font-bold text-[#004248]">
               {accommodation.currency.code}
               {parseFloat(accommodation.pricePerNight || "0").toFixed(2)}
             </p>
@@ -171,7 +171,7 @@ export default function AccommodationDetailsClient({
 
         {/* Description */}
         <div className="mb-8">
-          <h2 className="text-2xl  mb-3 text-foreground">
+          <h2 className="text-xl  mb-3 text-foreground">
             About This Accommodation
           </h2>
           <p className="text-muted-foreground leading-relaxed">
@@ -181,7 +181,7 @@ export default function AccommodationDetailsClient({
 
         {/* Amenities */}
         <div className="mb-8">
-          <h2 className="text-2xl  mb-4 text-foreground">Amenities</h2>
+          <h2 className="text-xl  mb-4 text-foreground">Amenities</h2>
           <div className="flex flex-wrap gap-3">
             {accommodation.amenities && accommodation.amenities.length > 0 ? (
               accommodation.amenities.map((amenity) => (
@@ -190,7 +190,7 @@ export default function AccommodationDetailsClient({
                   className="flex items-center gap-2 bg-[#E0F2F1] text-[#004248] px-2 py-1 rounded-lg border border-[#B2DFDB]"
                 >
                   {amenity.icon && <IconFinder name={amenity.icon} />}
-                  <span className="font-medium">{amenity.name}</span>
+                  <span className="text-sm">{amenity.name}</span>
                 </div>
               ))
             ) : (
