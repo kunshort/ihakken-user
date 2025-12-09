@@ -28,6 +28,7 @@ interface LodgingLayoutProps {
 export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [callModalOpen, setCallModalOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
@@ -45,7 +46,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       );
   }, [decoded]);
 
-  // Effect to detect scroll position
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -65,7 +65,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     (s: any) => s.serviceType?.toLowerCase() === "lodging"
   )?.id;
 
-  // Fetch accommodations
   const {
     data: accommodationsData,
     isLoading: isLoadingAccommodations,
@@ -75,7 +74,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
   const accommodationsRaw: Accommodation[] = accommodationsData || [];
 
-  // Filter accommodations for search
   const filteredAccommodations = useMemo(() => {
     if (!searchQuery) return accommodationsRaw;
 
@@ -92,13 +90,11 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const backLink = `/branch/services/${serviceId}${payload ? `?payload=${payload}` : ""
     }`;
 
-  // Handle retry
   const [isRetrying, setIsRetrying] = useState(false);
   const handleRetry = () => {
     refetchAccommodations();
   };
 
-  // Loading state
   if (payloadLoading || (!serviceId && !payloadLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -107,7 +103,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     );
   }
 
-  // Check if there are no accommodations (empty state)
   const hasNoAccommodations =
     !isLoadingAccommodations &&
     accommodationsRaw.length === 0 &&
