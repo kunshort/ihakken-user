@@ -14,10 +14,11 @@ import {
   useGetMenuCategoriesQuery,
 } from "@/lib/api/restaurant";
 import { useSearchParams } from "next/navigation";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { MenuItem } from "@/lib/types/interfaces";
 import { buildCategoryHierarchy } from "@/lib/utils";
+import ErrorComponent from "../shared/errorComponent";
 
 interface RestaurantLayoutProps {
   branchId: string;
@@ -33,7 +34,8 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
 
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   useEffect(() => {
     if (!decoded) return;
@@ -62,19 +64,24 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   }, []);
 
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "restaurant"
+    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
   )?.id;
 
   // Fetch menu items
   const {
     data: menuData,
     isLoading: isLoadingMenu,
-    error: isErrorMenu,
+    error: menuError,
+    refetch: refetchMenu,
   } = useGetMenuItemsQuery(serviceId ? { serviceId } : skipToken);
 
   // Fetch categories separately
-  const { data: categoriesData, isLoading: isLoadingCategories } =
-    useGetMenuCategoriesQuery(serviceId ? { serviceId } : skipToken);
+  const {
+    data: categoriesData,
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useGetMenuCategoriesQuery(serviceId ? { serviceId } : skipToken);
 
   const menuItemsRaw: MenuItem[] = menuData?.data || [];
   const rawCategories = categoriesData || [];
@@ -167,6 +174,19 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
     return filtered;
   }, [menuItemsByCategory, searchQuery]);
 
+  // Handle retry for both menu items and categories
+  const handleRetry = async () => {
+    try {
+      await Promise.all([refetchMenu(), refetchCategories()]);
+    } catch (error) {
+      console.error("Error retrying:", error);
+    }
+  };
+
+  // Check if we're currently retrying
+  const isRetrying = isLoadingMenu || isLoadingCategories;
+
+  // Loading state
   if (payloadLoading || (!serviceId && !payloadLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -181,7 +201,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
       <div className="sticky top-0 z-20 bg-white shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
-          className={`relative bg-linear-to-r from-teal-600 to-teal-800 overflow-hidden transition-all duration-300 ease-in-out ${
+          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${
             isScrolled ? "h-16" : "h-48 md:h-64"
           }`}
         >
@@ -232,28 +252,34 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
         </div>
       </div>
 
-      {/* LOADING & ERROR STATES */}
-      {(isLoadingMenu || isLoadingCategories) && (
+      {/* LOADING STATE */}
+      {(isLoadingMenu || isLoadingCategories) && !menuError && !categoriesError && (
         <div className="min-h-screen flex items-center justify-center">
           <p className="text-muted-foreground">Loading menu...</p>
         </div>
       )}
-      {isErrorMenu && (
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-destructive">Failed to load menu items</p>
+
+      {/* ERROR STATE */}
+      {(menuError || categoriesError) && (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <ErrorComponent
+            errorMessage="Failed to load menu items"
+            handleRetry={handleRetry}
+            isRetrying={isRetrying}
+          />
         </div>
       )}
 
       {/* MAIN CONTENT */}
-      {!isLoadingMenu && !isErrorMenu && (
+      {!isLoadingMenu && !isLoadingCategories && !menuError && !categoriesError && (
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* DESKTOP SIDEBAR */}
             <div className="hidden md:block md:col-span-1">
               {/* Set a fixed top value to prevent jumping during scroll */}
-              <div className="bg-linear-to-b from-teal-50 to-transparent rounded-lg p-4 sticky top-[140px]">
-                <h2 className="text-sm font-semibold text-teal-600 mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-teal-500 rounded-full" />
+              <div className="bg-linear-to-b from-[#004248] to-transparent rounded-lg p-4 sticky top-[140px]">
+                <h2 className="text-sm font-semibold text-[#004248] mb-4 flex items-center gap-2">
+                  <div className="w-1 h-4 bg-[#006666] rounded-full" />
                   View Categories
                 </h2>
                 <div className="space-y-1">
@@ -280,10 +306,10 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
               <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
                 <button
                   onClick={() => setIsSidebarOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#004248] border border-[#006666] hover:bg-[#006666] transition-colors"
                 >
-                  <Menu className="w-4 h-4 text-teal-600" />
-                  <span className="text-sm font-medium text-teal-700">
+                  <Menu className="w-4 h-4 text-[#004248]" />
+                  <span className="text-sm font-medium text-white">
                     View Categories
                   </span>
                 </button>

@@ -7,12 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wifi, Wind, Coffee } from "lucide-react";
 import { Accommodation } from "@/lib/types/interfaces";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 
 interface AccommodationGridProps {
   accommodations: Accommodation[];
+  branchId: string;
 }
 
 const amenityIcons: Record<string, React.ReactNode> = {
@@ -23,12 +24,9 @@ const amenityIcons: Record<string, React.ReactNode> = {
   Concierge: <span className="text-xs">🔔</span>,
 };
 
-export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
+export function AccommodationGrid({ accommodations, branchId }: AccommodationGridProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
-  const { data: decodedPayload } = useDecodedPayload(payload);
-
-  const branchId = decodedPayload?.branch?.id || "";
 
   if (!accommodations || accommodations.length === 0) {
     return (
@@ -51,12 +49,7 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
         }`;
 
         return (
-           <Link 
-                    key={accommodation.id}
-                    href={`/branch/${branchId}/services/lodging/${accommodation.id}${
-                      payload ? `?payload=${payload}` : "" 
-                    }`}
-                  >
+          <Link href={href} key={accommodation.id} legacyBehavior={false}>
             <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer h-full">
               <div className="relative h-48 overflow-hidden bg-muted">
                 {image ? (
@@ -87,7 +80,7 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
                     accommodation.amenities.slice(0, 3).map((amenity) => (
                       <div
                         key={amenity.id}
-                        className="flex items-center gap-1 bg-teal-50 text-teal-700 px-3 py-1 rounded-full text-xs font-medium"
+                        className="flex items-center gap-1 bg-teal-50 text-[#004248] px-3 py-1 rounded text-xs font-medium mt-4"
                       >
                         {amenityIcons[amenity.name] || null}
                         {amenity.name}
@@ -102,12 +95,15 @@ export function AccommodationGrid({ accommodations }: AccommodationGridProps) {
 
                 <div className="flex items-center justify-between pt-4 border-t border-border">
                   <div>
-                    <p className="text-xs text-muted-foreground">Per night</p>
-                    <p className="text-xl font-bold text-teal-600">
-                      ${price.toFixed(2)}
+                    <p className="text-xs text-muted-foreground">
+                      Price per night
+                    </p>
+                    <p className="text-xl font-bold text-[#004248]">
+                      {accommodation.currency.code}
+                      {price.toFixed(2)}
                     </p>
                   </div>
-                  <Button className="bg-teal-600 hover:bg-teal-700">
+                  <Button className="bg-[#004248] hover:bg-[#003737] text-white px-8 py-2">
                     View Details
                   </Button>
                 </div>

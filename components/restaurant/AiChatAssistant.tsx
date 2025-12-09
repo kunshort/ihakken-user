@@ -144,7 +144,7 @@ export function AiChatAssistant({ branchId, payload }: AiChatAssistantProps) {
         <Button
           onClick={toggleChat}
           size="icon"
-          className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg"
+          className="w-14 h-14 bg-[#004248] hover:bg-[#00332d] rounded-full shadow-lg"
         >
           <Bot className="w-7 h-7" />
         </Button>
@@ -156,7 +156,7 @@ export function AiChatAssistant({ branchId, payload }: AiChatAssistantProps) {
           <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-200 flex flex-col py-0 border-2 ">
             <CardHeader className="flex flex-row items-center justify-between bg-muted px-4 py-2 rounded-t-lg"> 
               <div className="flex items-center gap-2">
-                <Bot className="h-6 w-6 text-teal-600" />
+                <Bot className="h-6 w-6 text-[#004248]" />
                 <CardTitle className="text-base">AI Assistant</CardTitle>
               </div>
               <Button

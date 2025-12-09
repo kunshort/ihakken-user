@@ -13,16 +13,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGetMenuItemsQuery } from "@/lib/api/restaurant";
-import { useDecodedPayload } from "@/hooks/useDecodedPayload";
+import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import { skipToken } from "@reduxjs/toolkit/query/react";
-import { useSelector } from "react-redux";
-import { createSelector } from "@reduxjs/toolkit";
 import Image from "next/image";
 import { MenuItem } from "@/lib/types/interfaces";
-import { restaurantApi } from "@/lib/api/restaurant";
 import { CustomizationItem } from "@/lib/types/interfaces";
-import { mockMenuItemsData } from "@/components/restaurant/menu-items";
 import { BASE_API_URL } from "@/lib/api/base";
+import EmptyContent from "@/components/shared/noContent";
+import ErrorComponent from "@/components/shared/errorComponent";
 
 export default function MenuItemDetailsPage() {
   const params = useParams<{ id: string; branchId: string }>();
@@ -44,40 +42,32 @@ export default function MenuItemDetailsPage() {
     Record<string, number>
   >({});
 
-  // Get decoded payload to find serviceId
-  const { data: decoded, loading: payloadLoading } = useDecodedPayload(payload);
+  const { data: decoded, isLoading: payloadLoading } =
+    useDecodePayloadQuery(payload);
 
   const serviceId = decoded?.services.find(
-    (s: any) => s.service_type.toLowerCase() === "restaurant"
+    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
   )?.id;
-
-  // Create stable query argument to prevent unnecessary re-renders
+  
   const stableMenuQueryArg = useMemo(
     () => (serviceId ? { serviceId } : skipToken),
     [serviceId]
   );
 
-  // Fetch to populate cache with stable argument
-  useGetMenuItemsQuery(stableMenuQueryArg);
+  const { 
+    data: menuData, 
+    isLoading: isLoadingMenu,
+    error: menuError,
+    refetch: refetchMenu
+  } = useGetMenuItemsQuery(stableMenuQueryArg);
 
-  // Create memoized selector to get specific menu item from cache
-  const selectMenuItemById = useMemo(
-    () =>
-      createSelector(
-        [restaurantApi.endpoints.getMenuItems.select(stableMenuQueryArg)],
-        (result) => {
-          const items = result?.data?.data || [];
-          return items.find((item: MenuItem) => item.id === itemId);
-        }
-      ),
-    [stableMenuQueryArg, itemId]
-  );
+  // Extract menu items from the response (handle the nested data structure)
+  const menuItems: MenuItem[] = menuData?.data || [];
 
-  // Get the menu item from cache using selector
-  const menuAssignment = useSelector(selectMenuItemById);
-
-  // If live data isn't found from the cache, try to find the item in our mock data.
-  const finalMenuAssignment = menuAssignment || mockMenuItemsData.find(item => item.id === itemId);
+  const menuAssignment = useMemo(() => {
+    if (!menuItems || menuItems.length === 0) return null;
+    return menuItems.find((item: MenuItem) => item.id === itemId);
+  }, [menuItems, itemId]);
 
   const updateQuantity = (
     type: "addOns" | "toppings" | "complements",
@@ -99,7 +89,12 @@ export default function MenuItemDetailsPage() {
     }
   };
 
-  if (payloadLoading) {
+  const handleRetry = () => {
+    refetchMenu();
+  };
+
+  // Loading state
+  if (payloadLoading || isLoadingMenu) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading item details...</p>
@@ -107,26 +102,71 @@ export default function MenuItemDetailsPage() {
     );
   }
 
-  if (!finalMenuAssignment) {
+  // Error state
+  if (menuError) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-2xl mx-auto text-center pt-20">
-          <h1 className="text-2xl font-bold mb-4">Item not found</h1>
-          <Link
-            href={`/branch/${branchId}/services/restaurant${
-              payload ? `?payload=${payload}` : ""
-            }`}
-          >
-            <Button variant="outline">Back to Menu</Button>
-          </Link>
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-10 bg-background border-b">
+          <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
+            <Link
+              href={`/branch/${branchId}/services/restaurant${
+                payload ? `?payload=${payload}` : ""
+              }`}
+            >
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold flex-1">Menu Item</h1>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto p-4">
+          <ErrorComponent
+            errorMessage="Failed to load menu item details. Please try again."
+            handleRetry={handleRetry}
+            isRetrying={isLoadingMenu}
+          />
         </div>
       </div>
     );
   }
 
-  const { menuItem, customPrice, currency, customizations } = finalMenuAssignment;
-  const currencySymbol = currency?.[0]?.code || "";
+  // Item not found state
+  if (!menuAssignment) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 z-10 bg-background border-b">
+          <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
+            <Link
+              href={`/branch/${branchId}/services/restaurant${
+                payload ? `?payload=${payload}` : ""
+              }`}
+            >
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold flex-1">Menu Item</h1>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto p-4">
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <EmptyContent
+              message="Item Not Found"
+              description="The menu item you're looking for doesn't exist or has been removed."
+              actionLabel="Back to Menu"
+              actionHref={`/branch/${branchId}/services/restaurant${
+                payload ? `?payload=${payload}` : ""
+              }`}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  const { menuItem, customPrice, currency, customizations } = menuAssignment;
+  const currencySymbol = currency?.[0]?.code ;
   const price = customPrice || menuItem.price;
   const mainImage = menuItem.images?.[0];
   const imageUrl = mainImage?.startsWith("http")
@@ -219,10 +259,12 @@ export default function MenuItemDetailsPage() {
             <p className="text-sm text-muted-foreground">
               {menuItem.shortDescription}
             </p>
-            <p className="text-3xl font-bold text-teal-600 mt-2">
-              {currencySymbol}
-              {price.toLocaleString()}
-            </p>
+            
+             <div className="flex gap-4 justify-between  text-3xl font-bold text-[#004248] mt-2">
+               {currencySymbol}  
+              {price}
+             </div>
+            
           </div>
 
           {/* Main Item Quantity Selector */}
@@ -336,8 +378,8 @@ export default function MenuItemDetailsPage() {
                     )}
                     <div className="flex-1">
                       <p className="font-medium text-sm">{addon.addonName}</p>
-                      <p className="text-teal-600 font-semibold text-sm">
-                        +{currencySymbol}
+                      <p className="text-[#004248] font-semibold text-sm">
+                        {currencySymbol}
                         {parseFloat(addon.extraPrice).toLocaleString()}
                       </p>
                     </div>
@@ -420,8 +462,8 @@ export default function MenuItemDetailsPage() {
                       <p className="font-medium text-sm">
                         {topping.toppinName}
                       </p>
-                      <p className="text-teal-600 font-semibold text-sm">
-                        +{currencySymbol}
+                      <p className="text-[#004248] font-semibold text-sm">
+                        {currencySymbol}
                         {parseFloat(topping.extraPrice).toLocaleString()}
                       </p>
                     </div>
@@ -504,8 +546,8 @@ export default function MenuItemDetailsPage() {
                       <p className="font-medium text-sm">
                         {complement.complementName}
                       </p>
-                      <p className="text-teal-600 font-semibold text-sm">
-                        +{currencySymbol}
+                      <p className="text-[#004248] font-semibold text-sm">
+                        {currencySymbol}
                         {parseFloat(complement.extraPrice).toLocaleString()}
                       </p>
                     </div>
@@ -564,7 +606,7 @@ export default function MenuItemDetailsPage() {
                 </div>
               )}
               {totalToppings > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between ">
                   <span className="text-muted-foreground">Toppings:</span>
                   <span className="font-medium">{totalToppings}</span>
                 </div>
@@ -577,12 +619,12 @@ export default function MenuItemDetailsPage() {
               )}
               <div className="border-t border-teal-200 pt-2 flex justify-between font-bold">
                 <span>Total Items:</span>
-                <span className="text-teal-600">{totalItems}</span>
+                <span className="text-[#004248]">{totalItems}</span>
               </div>
             </div>
             <div className="border-t border-teal-200 pt-3 flex justify-between items-center">
               <span className="font-semibold">Total Price:</span>
-              <span className="text-2xl font-bold text-teal-600">
+              <span className="text-2xl font-bold text-[#004248] flex justify-between">
                 {currencySymbol}
                 {totalPrice.toLocaleString()}
               </span>
