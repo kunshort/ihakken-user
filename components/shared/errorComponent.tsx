@@ -14,6 +14,7 @@ export default function ErrorComponent({
   handleRetry,
   isRetrying,
 }: ErrorComponentProps) {
+  console.log("%%%%%%5ErrorComponent rendered", isRetrying);
   return (
     <div className="flex flex-col items-center gap-3 pt-8">
       <div className="flex flex-col items-center justify-center gap-2 p-4 border border-red-200 bg-red-50 rounded-lg self-center">
@@ -22,6 +23,7 @@ export default function ErrorComponent({
           <h3 className="text-red-900 font-semibold">An Error Occurred</h3>
         </div>
         <p className="text-sm text-red-800 text-center">{errorMessage}</p>
+        
         <RetryComponent handleRetry={handleRetry} isRetrying={isRetrying} />
       </div>
     </div>
