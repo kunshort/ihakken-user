@@ -20,7 +20,7 @@ export const lodgingApi = createApi({
   reducerPath: "lodgingApi",
   baseQuery,
   tagTypes: ["Accommodations", "Accommodation", "DecodedPayload"],
-  keepUnusedDataFor: 300, // Keep unused data for 5 minutes
+  keepUnusedDataFor: 300,
   endpoints: (builder) => ({
     decodePayload: builder.query<any, string>({
       queryFn: (payload) => {

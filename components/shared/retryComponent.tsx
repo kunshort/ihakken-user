@@ -12,7 +12,7 @@ export function RetryComponent({
       <Button
         onClick={handleRetry}
         disabled={isRetrying}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-[#003737] text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isRetrying ? (
           <>
