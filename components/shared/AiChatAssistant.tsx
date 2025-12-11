@@ -224,10 +224,8 @@ export function AiChatAssistant({
       const normalizedApi = api.replace(/^https?:\/\//, '');
       const wsBase = `wss://${normalizedApi}`;
       const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-      const fingerprint = typeof window !== "undefined" ? localStorage.getItem("device_fingerprint") : null;
       const qp: string[] = [];
       if (token) qp.push(`token=${encodeURIComponent(token)}`);
-      if (fingerprint) qp.push(`device_fingerprint=${encodeURIComponent(fingerprint)}`);
       const qs = qp.length ? `?${qp.join("&")}` : "";
       const wsUrl = `${wsBase}/api/v1/chatbot/sessions/${connectSessionId}/${qs}`;
       console.log("[AiChatAssistant] Connecting WS to session:", wsUrl);
