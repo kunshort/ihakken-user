@@ -14,6 +14,42 @@ import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
 import { aiServiceConfigs, ServiceType } from "@/components/shared/ai-service-configs";
 import { AIWebSocketClient, WSMessage, WSResponse } from "@/lib/ws/aiWebSocket";
+import { BASE_API_URL } from "@/lib/api/base";
+import {
+  useCreateChatSessionMutation,
+  useGetChatSessionQuery,
+} from "@/lib/api/services-api";
+// Helper functions for localStorage session management
+function getSessionStorageKey(serviceType: string): string {
+  return `ai_chat_session_${serviceType}`;
+}
+interface StoredSessionData {
+  sessionId: string;
+  proxyToken: string;
+}
+function getStoredSessionData(serviceType: string): StoredSessionData | null {
+  if (typeof window === "undefined") return null;
+  const rawData = localStorage.getItem(getSessionStorageKey(serviceType));
+  if (!rawData) return null;
+  try {
+    return JSON.parse(rawData) as StoredSessionData;
+  } catch (e) {
+    console.error("Failed to parse stored session data, clearing it.", e);
+    localStorage.removeItem(getSessionStorageKey(serviceType));
+    return null;
+  }
+}
+
+function storeSessionData(serviceType: string, sessionId: string, proxyToken: string): void {
+  if (typeof window === "undefined") return;
+  const data: StoredSessionData = { sessionId, proxyToken };
+  localStorage.setItem(getSessionStorageKey(serviceType), JSON.stringify(data));
+}
+
+function clearStoredSession(serviceType: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(getSessionStorageKey(serviceType));
+}
 
 // Define the type for a menu item as it will be displayed in the chat
 export interface AIChatMenuItem {
@@ -39,70 +75,72 @@ export interface AIChatRoomItem {
 // Define the type for a chat message, now supporting menu items
 interface ChatMessage {
   text?: string; // Make text optional
-  sender: "user" | "ai";
+  sender: "user" | "ai" | "system";
   items?: (AIChatMenuItem | AIChatRoomItem)[];
   cardType?: "menuItem" | "room"; // indicates how to render items
 }
 
 interface AiChatAssistantProps {
-  branchId: string;
+  serviceId: string; // The branch service id (not branch id)
+  branchId: string;  // Needed for navigation links in cards
   payload: string;
   serviceType: ServiceType;
 }
+
 export function AiChatAssistant({
+  serviceId,
   branchId,
   payload,
   serviceType,
 }: AiChatAssistantProps) {
+  
+
   const activeConfig = aiServiceConfigs[serviceType];
+  const [createSessionMutation] = useCreateChatSessionMutation();
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isInputActive, setIsInputActive] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      text: activeConfig.initialMessage,
-      sender: "ai",
-    },
+    { text: activeConfig.initialMessage, sender: "ai" },
   ]);
   const [currentInput, setCurrentInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [isWsConnected, setIsWsConnected] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
+  const [shouldFetchSession, setShouldFetchSession] = useState(false);
+  const [connectingDots, setConnectingDots] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<AIWebSocketClient | null>(null);
+
+  // Hook to fetch a stored session's data
+  const { data: storedSession, refetch: refetchSession } =
+    useGetChatSessionQuery(sessionId || "", {
+      skip: !shouldFetchSession || !sessionId,
+    });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking]);
 
-  // Initialize WebSocket client on mount
+  // Initialize WebSocket client
   useEffect(() => {
-    // Only run in browser
     try {
       const client = new AIWebSocketClient();
       wsRef.current = client;
 
-      client.onOpen(() => {
-        setIsWsConnected(true);
-      });
-
-      client.onClose(() => {
-        setIsWsConnected(false);
-      });
-
-      client.onError(() => {
-        setIsWsConnected(false);
-      });
+      client.onOpen(() => setIsWsConnected(true));
+      client.onClose(() => setIsWsConnected(false));
+      client.onError(() => setIsWsConnected(false));
 
       client.onMessage((msg: WSResponse) => {
-        // Map incoming WS responses to ChatMessage
-        // Backend is expected to send a JSON with shape { type, id?, payload: { text?, items?, cardType? } }
         const payload = msg.payload || {};
 
-        // If payload contains items, render as item cards
         if (payload.items && Array.isArray(payload.items) && payload.items.length > 0) {
           const aiMsg: ChatMessage = {
             text: payload.text || payload.title || activeConfig.specialResponse.responseText,
@@ -110,29 +148,24 @@ export function AiChatAssistant({
             items: payload.items,
             cardType: payload.cardType || activeConfig.specialResponse.cardType,
           };
-          setMessages((prev) => [...prev, aiMsg]);
+          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
           setIsThinking(false);
           return;
         }
 
-        // Otherwise, treat as text response
         if (payload.text) {
           const aiMsg: ChatMessage = { text: payload.text, sender: "ai" };
-          setMessages((prev) => [...prev, aiMsg]);
+          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
           setIsThinking(false);
           return;
         }
 
-        // Generic fallback: if the server returns raw text in msg.payload
         if (typeof msg.payload === "string") {
           const aiMsg: ChatMessage = { text: msg.payload as string, sender: "ai" };
-          setMessages((prev) => [...prev, aiMsg]);
+          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
           setIsThinking(false);
         }
       });
-
-      // Connect (will use NEXT_PUBLIC_AI_WS_URL if provided)
-      client.connect();
 
       return () => {
         client.disconnect();
@@ -143,125 +176,130 @@ export function AiChatAssistant({
     }
   }, [serviceType]);
 
-  // Prevent background scrolling when chat is open
+  // Invalidate session if the proxy token (payload) changes
   useEffect(() => {
-    if (isChatOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
+    const storedData = getStoredSessionData(serviceType);
+    if (storedData && storedData.proxyToken !== payload) {
+      console.log("[AiChatAssistant] Proxy token changed. Clearing old session.");
+      clearStoredSession(serviceType);
+      // Reset component state to reflect the cleared session
+      setSessionId(null);
+      setMessages([{ text: activeConfig.initialMessage, sender: "ai" }]);
     }
+  }, [payload, serviceType, activeConfig.initialMessage]);
 
-    // Cleanup function to restore scroll on unmount
-    return () => {
-      document.body.style.overflow = "unset";
-    };
+  // Prevent background scrolling
+  useEffect(() => {
+    document.body.style.overflow = isChatOpen ? "hidden" : "unset";
+    return () => { document.body.style.overflow = "unset"; };
   }, [isChatOpen]);
 
-  const toggleChat = () => setIsChatOpen(!isChatOpen);
+  // Load past messages
+  useEffect(() => {
+    if (storedSession?.messages?.length) {
+      const convertedMessages: ChatMessage[] = storedSession.messages.map(
+        (msg) => ({ text: msg.content, sender: msg.role === "assistant" ? "ai" : "user" })
+      );
+      setMessages([{ text: activeConfig.initialMessage, sender: "ai" }, ...convertedMessages]);
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [storedSession, activeConfig.initialMessage]);
 
-  const handleInputFocus = () => {
-    setIsInputActive(true);
+  // Animate connecting dots
+  useEffect(() => {
+    if (!isWsConnected && sessionId) {
+      const interval = setInterval(() => {
+        setConnectingDots(prev => (prev.length < 3 ? prev + "." : ""));
+      }, 500);
+      return () => clearInterval(interval);
+    } else {
+      setConnectingDots("");
+    }
+  }, [isWsConnected, sessionId]);
+
+  const connectWebSocket = (connectSessionId: string) => {
+    if (!wsRef.current) return;
+    try {
+      const api = BASE_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      const normalizedApi = api.replace(/^https?:\/\//, '');
+      const wsBase = `wss://${normalizedApi}`;
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+      const fingerprint = typeof window !== "undefined" ? localStorage.getItem("device_fingerprint") : null;
+      const qp: string[] = [];
+      if (token) qp.push(`token=${encodeURIComponent(token)}`);
+      if (fingerprint) qp.push(`device_fingerprint=${encodeURIComponent(fingerprint)}`);
+      const qs = qp.length ? `?${qp.join("&")}` : "";
+      const wsUrl = `${wsBase}/api/v1/chatbot/sessions/${connectSessionId}/${qs}`;
+      console.log("[AiChatAssistant] Connecting WS to session:", wsUrl);
+      wsRef.current.disconnect();
+      wsRef.current.connect(wsUrl);
+
+      // Show connecting system message
+      setMessages(prev => [...prev, { text: `Connecting to Agent${connectingDots}`, sender: "system" }]);
+    } catch (err) {
+      console.warn("AiChatAssistant: failed to connect WS", err);
+    }
   };
 
-  const handleInputBlur = () => {
-    setTimeout(() => {
-      setIsInputActive(false);
-    }, 300);
+  const initializeSession = async () => {
+    setIsLoadingSession(true);
+    try {
+      const storedData = getStoredSessionData(serviceType);
+      if (storedData && storedData.proxyToken === payload) {
+        console.log("[AiChatAssistant] Valid session found in storage. Loading:", storedData.sessionId);
+        setSessionId(storedData.sessionId);
+        setShouldFetchSession(true);
+        connectWebSocket(storedData.sessionId);
+      } else {
+        if (storedData) clearStoredSession(serviceType); // Clean up mismatched session
+        console.log("[AiChatAssistant] No valid session in storage. Creating a new one.");
+        const newSession = await createSessionMutation({ resource_id: serviceId, medium: "branch_service" }).unwrap();
+        storeSessionData(serviceType, newSession.id, payload);
+        setSessionId(newSession.id);
+        setMessages([{ text: activeConfig.initialMessage, sender: "ai" }]);
+        connectWebSocket(newSession.id);
+      }
+    } catch (err) {
+      console.error("AiChatAssistant: failed to initialize session", err);
+    } finally {
+      setIsLoadingSession(false);
+    }
   };
+
+  const toggleChat = () => {
+    const nextIsOpen = !isChatOpen;
+    setIsChatOpen(nextIsOpen);
+    if (nextIsOpen) initializeSession();
+    else { wsRef.current?.disconnect(); setIsWsConnected(false); }
+  };
+
+  const handleInputFocus = () => setIsInputActive(true);
+  const handleInputBlur = () => setTimeout(() => setIsInputActive(false), 300);
 
   const sendMessage = () => {
-    if (currentInput.trim()) {
-      const textToSend = currentInput;
-      const userMessage: ChatMessage = { text: textToSend, sender: "user" };
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
-      setCurrentInput("");
-      setIsThinking(true);
+    if (!currentInput.trim() || !isWsConnected || !sessionId || !wsRef.current) return;
+    const userMessage: ChatMessage = { text: currentInput, sender: "user" };
+    setMessages(prev => [...prev.filter(m => m.sender !== "system"), userMessage]);
+    setCurrentInput("");
+    setIsThinking(true);
 
-      // If WS is connected, send the message to the server and wait for response
-      if (isWsConnected && wsRef.current) {
-        const clientId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-        const msg: WSMessage = {
-          type: "user_message",
-          id: clientId,
-          payload: {
-            text: textToSend,
-            branchId,
-            payload,
-            serviceType,
-          },
-        };
-        const ok = wsRef.current.send(msg);
-        if (!ok) {
-          // fallback to mock if send failed
-          setTimeout(() => {
-            const lowerCaseInput = textToSend.toLowerCase();
-            const isSpecialRequest = activeConfig.specialResponse.keywords.some(
-              (keyword) => lowerCaseInput.includes(keyword)
-            );
-            let aiMessage: ChatMessage;
-            if (isSpecialRequest) {
-              aiMessage = {
-                text: activeConfig.specialResponse.responseText,
-                sender: "ai",
-                items: activeConfig.specialResponse.data,
-                cardType: activeConfig.specialResponse.cardType,
-              };
-            } else {
-              const randomReply = activeConfig.mockReplies[Math.floor(Math.random() * activeConfig.mockReplies.length)];
-              aiMessage = { text: randomReply, sender: "ai" };
-            }
-            setMessages((prev) => [...prev, aiMessage]);
-            setIsThinking(false);
-          }, 500);
-        }
-        return;
-      }
-
-      // No WS: fall back to existing mock behavior
-      const lowerCaseInput = textToSend.toLowerCase();
-      const isSpecialRequest = activeConfig.specialResponse.keywords.some(
-        (keyword) => lowerCaseInput.includes(keyword)
-      );
-
-      setTimeout(() => {
-        let aiMessage: ChatMessage;
-        if (isSpecialRequest) {
-          aiMessage = {
-            text: activeConfig.specialResponse.responseText,
-            sender: "ai",
-            items: activeConfig.specialResponse.data,
-            cardType: activeConfig.specialResponse.cardType,
-          };
-        } else {
-          const randomReply = activeConfig.mockReplies[Math.floor(Math.random() * activeConfig.mockReplies.length)];
-          aiMessage = { text: randomReply, sender: "ai" };
-        }
-        setMessages((prevMessages) => [...prevMessages, aiMessage]);
-        setIsThinking(false);
-      }, 1500);
-    }
+    const clientId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const msg: WSMessage = { type: "user_message", id: clientId, payload: { text: userMessage.text, serviceId, payload, serviceType, sessionId } };
+    wsRef.current.send(msg);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      sendMessage();
-    }
+    if (e.key === "Enter") sendMessage();
   };
 
   return (
     <>
-      {/* The Floating Chat Button */}
       <div className="fixed bottom-5 right-4 z-40">
-        <Button
-          onClick={toggleChat}
-          size="icon"
-          className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg"
-        >
+        <Button onClick={toggleChat} size="icon" className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg">
           <Bot className="w-7 h-7" />
         </Button>
       </div>
 
-      {/* The Chat Window */}
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-16">
           <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-200 flex flex-col py-0 border-2 ">
@@ -270,77 +308,55 @@ export function AiChatAssistant({
                 <Bot className="h-6 w-6 text-teal-600" />
                 <CardTitle className="text-base">AI Assistant</CardTitle>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={toggleChat}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleChat}>
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent
-              className={`p-4 text-sm text-muted-foreground flex-grow overflow-y-auto overflow-x-hidden ${
-                isInputActive ? "h-[20vh]" : "h-[55vh]"
-              }`}
-            >
-              <div className="space-y-3">
-                {messages.map((msg, index) => (
-                  <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                    {msg.items ? (
-                      // Render menu items if present
-                      <div className="flex flex-col gap-2 max-w-[90%]">
-                        {msg.text && (
-                          <div className="p-2 rounded-lg bg-muted text-foreground self-start">
-                            {msg.text}
-                          </div>
-                        )}
-                        <div className="flex overflow-x-auto gap-3 p-2 -mx-2">
-                          {(msg.cardType === "menuItem" || activeConfig.specialResponse?.cardType === "menuItem") &&
-                            msg.items.map((item) => (
-                              <MenuItemCard
-                                key={item.id}
-                                item={item as AIChatMenuItem}
-                                branchId={branchId}
-                                payload={payload}
-                                className="w-[180px] flex-shrink-0"
-                              />
-                            ))}
 
-                           {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
-                            msg.items.map((item) => (
-                              <RoomCard
-                                key={item.id}
-                                room={item as AIChatRoomItem}
-                                branchId={branchId}
-                                payload={payload}
-                                className="w-[180px] flex-shrink-0"
-                              />
-                            ))}
+            <CardContent className={`p-4 text-sm text-muted-foreground flex-grow overflow-y-auto overflow-x-hidden ${isInputActive ? "h-[20vh]" : "h-[55vh]"}`}>
+              {isLoadingSession ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Loading session...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((msg, index) => (
+                    <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                      {msg.items ? (
+                        <div className="flex flex-col gap-2 max-w-[90%]">
+                          {msg.text && <div className="p-2 rounded-lg bg-muted text-foreground self-start">{msg.text}</div>}
+                          <div className="flex overflow-x-auto gap-3 p-2 -mx-2">
+                            {(msg.cardType === "menuItem" || activeConfig.specialResponse?.cardType === "menuItem") &&
+                              msg.items.map((item) => <MenuItemCard key={item.id} item={item as AIChatMenuItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
+                            {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
+                              msg.items.map((item) => <RoomCard key={item.id} room={item as AIChatRoomItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      // Render text message as before
-                      <div
-                        className={`max-w-[80%] p-2 rounded-lg ${
-                          msg.sender === "user"
-                            ? "bg-teal-600 text-white"
-                            : "bg-muted text-foreground"
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
+                      ) : (
+                        <div className={`max-w-[80%] p-2 rounded-lg ${msg.sender === "user" ? "bg-teal-600 text-white" : msg.sender === "system" ? "bg-text-teal-600 text-black italic" : "bg-muted text-foreground"}`}>
+                          {msg.sender === "system" ? `Connecting to Agent${connectingDots}` : msg.text}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </CardContent>
+
             <CardFooter className="p-2 border-t">
               <div className="flex w-full items-center space-x-2">
                 <Input
                   id="message"
-                  placeholder="Type your question..."
+                  placeholder={
+                    isLoadingSession
+                      ? "Loading session..."
+                      : !sessionId
+                      ? "Initializing chat..."
+                      : !isWsConnected
+                      ? `Connecting to Agent${connectingDots}`
+                      : "Type your question..."
+                  }
                   className="flex-1"
                   autoComplete="on"
                   value={currentInput}
@@ -348,13 +364,9 @@ export function AiChatAssistant({
                   onFocus={handleInputFocus}
                   onBlur={handleInputBlur}
                   onKeyDown={handleKeyPress}
+                  disabled={isLoadingSession || !sessionId || !isWsConnected}
                 />
-                {/* send button */}
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="bg-teal-600 hover:bg-teal-700" onClick={sendMessage}
-                >
+                <Button type="submit" size="icon" className="bg-teal-600 hover:bg-teal-700" onClick={sendMessage} disabled={isLoadingSession || !sessionId || !isWsConnected}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

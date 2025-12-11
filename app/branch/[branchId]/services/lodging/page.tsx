@@ -14,7 +14,7 @@ interface DecodedPayload {
   services: Array<{
     id: string;
     name: string;
-    service_type: string;
+    serviceType: string;
   }>;
 }
 
@@ -78,10 +78,29 @@ export default function LodgingPage() {
 
   const payload = searchParams.get("payload") || "";
 
+  // Extract the lodging service id from the decoded payload
+  const lodgingServiceId = payloadData?.services?.find(
+    (s) => s.serviceType?.toLowerCase() === "lodging"
+  )?.id;
+
+  if (!lodgingServiceId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Lodging service not found in payload</p>
+          <a href="/" className="text-primary hover:underline">
+            Go back to services
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <LodgingLayout branchId={payloadData.branch.id} />
       <AiChatAssistant
+        serviceId={lodgingServiceId}
         branchId={payloadData.branch.id}
         payload={payload}
         serviceType="lodging"
