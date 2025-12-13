@@ -21,6 +21,7 @@ import { CustomizationItem } from "@/lib/types/interfaces";
 import { BASE_API_URL } from "@/lib/api/base";
 import EmptyContent from "@/components/shared/noContent";
 import ErrorComponent from "@/components/shared/errorComponent";
+import { AnalyticsTracker } from "@/components/shared/analytics";
 
 export default function MenuItemDetailsPage() {
   const params = useParams<{ id: string; branchId: string }>();
@@ -219,6 +220,13 @@ export default function MenuItemDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+          {/* Analytics Tracker: Logs the visit when the menu item is loaded */}
+      {menuAssignment?.id && (
+        <AnalyticsTracker
+          eventType="menu_item_visit"
+          resourceId={menuAssignment.id}
+        />
+      )}
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
@@ -627,6 +635,8 @@ export default function MenuItemDetailsPage() {
               <span className="text-2xl font-bold text-[#004248] flex justify-between">
                 {currencySymbol}
                 {totalPrice.toLocaleString()}
+                {currencySymbol}
+                {totalPrice.toFixed(2)}
               </span>
             </div>
           </CardContent>

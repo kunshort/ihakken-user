@@ -101,6 +101,24 @@ export const servicesApi = createApi({
         { type: "ChatbotConfig", id: branchServiceId },
       ],
     }),
+    /**
+     * Endpoint to log a visit to an accommodation.
+     * It's a GET request and we don't need the response data.
+     */
+    getAccommodationVisit: builder.query<void, string>({
+      query: (accommodationId) => ({
+        url: `/api/v1/proxy/accommodation/${accommodationId}/visit/`,
+      }),
+    }),
+    /**
+     * Endpoint to log a visit to a menu item.
+     * It's a GET request and we don't need the response data.
+     */
+    getMenuItemVisit: builder.query<void, string>({
+      query: (menuAssignmentId) => ({
+        url: `/api/v1/proxy/menu-item/${menuAssignmentId}/visit/`,
+      }),
+    }),
   }),
 })
 
@@ -109,4 +127,6 @@ export const {
   useCreateChatSessionMutation,
   useGetChatSessionQuery,
   useGetChatbotConfigQuery,
+  useLazyGetAccommodationVisitQuery,
+  useLazyGetMenuItemVisitQuery,
 } = servicesApi

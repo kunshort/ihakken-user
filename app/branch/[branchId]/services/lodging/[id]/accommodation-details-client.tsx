@@ -38,6 +38,7 @@ import {
 import GalleryComponent from "@/components/shared/imageGallery";
 import ErrorComponent from "@/components/shared/errorComponent";
 import { LoadingSpinner } from "@/components/shared/loading";
+import { AnalyticsTracker } from "@/components/shared/analytics";
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation | undefined;
@@ -92,6 +93,13 @@ export default function AccommodationDetailsClient({
 
   return (
     <>
+      {/* Analytics Tracker: Logs the visit when the accommodation is loaded */}
+      {accommodation?.id && (
+        <AnalyticsTracker
+          eventType="accommodation_visit"
+          resourceId={accommodation.id}
+        />
+      )}
       <div className="relative h-64 md:h-80 overflow-hidden">
         {headerImages.length > 0 ? (
           <div className="relative w-full h-full">

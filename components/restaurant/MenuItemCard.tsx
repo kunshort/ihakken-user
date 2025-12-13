@@ -22,19 +22,6 @@ interface MenuItemCardProps {
   className?: string; // Allow passing custom classes
 }
 
-// Helper functions moved from AiChatAssistant
-const getCurrencySymbol = (code: string) => {
-  const symbols: Record<string, string> = {
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    CHF: "CHF",
-    XAF: "FCFA",
-    USS: "$",
-  };
-  return symbols[code] || code;
-};
-
 const formatPrepTime = (minutes: number | undefined | null) => {
   if (!minutes) return null;
   if (minutes < 60) return `${minutes}m`;
@@ -44,7 +31,8 @@ const formatPrepTime = (minutes: number | undefined | null) => {
 };
 
 export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payload, className }) => {
-  const currencySymbol = getCurrencySymbol(item.currencyCode);
+  // Use the currency code directly from the item prop, consistent with the details page.
+  const currencySymbol = item.currencyCode;
   const prepTimeFormatted = formatPrepTime(item.prepTime);
 
   return (
