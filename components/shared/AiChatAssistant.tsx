@@ -13,20 +13,22 @@ import { Input } from "@/components/ui/input";
 import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
 import { aiServiceConfigs, ServiceType } from "@/components/shared/ai-service-configs";
-import { AIWebSocketClient, WSMessage, WSResponse } from "@/lib/ws/aiWebSocket";
+import { AIWebSocketClient, WSResponse } from "@/lib/ws/aiWebSocket";
 import { BASE_API_URL } from "@/lib/api/base";
 import {
   useCreateChatSessionMutation,
   useGetChatSessionQuery,
 } from "@/lib/api/services-api";
-// Helper functions for localStorage session management
+
 function getSessionStorageKey(serviceType: string): string {
   return `ai_chat_session_${serviceType}`;
 }
+
 interface StoredSessionData {
   sessionId: string;
   proxyToken: string;
 }
+
 function getStoredSessionData(serviceType: string): StoredSessionData | null {
   if (typeof window === "undefined") return null;
   const rawData = localStorage.getItem(getSessionStorageKey(serviceType));
@@ -51,15 +53,44 @@ function clearStoredSession(serviceType: string): void {
   localStorage.removeItem(getSessionStorageKey(serviceType));
 }
 
-// Define the type for a menu item as it will be displayed in the chat
+// Typewriter effect component
+function TypewriterText({ text, isComplete }: { text: string; isComplete: boolean }) {
+  const [displayText, setDisplayText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (isComplete) {
+      setDisplayText(text);
+      return;
+    }
+
+    if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(text.slice(0, currentIndex + 1));
+        setCurrentIndex(currentIndex + 1);
+      }, 20); // Adjust speed here (lower = faster)
+      return () => clearTimeout(timeout);
+    }
+  }, [text, currentIndex, isComplete]);
+
+  useEffect(() => {
+    // Reset if text changes (new chunk arrived)
+    if (text.length > displayText.length) {
+      setCurrentIndex(displayText.length);
+    }
+  }, [text]);
+
+  return <>{displayText}</>;
+}
+
 export interface AIChatMenuItem {
   id: string;
   name: string;
   shortDescription?: string;
   price: number;
-  currencyCode: string; // e.g., "USD"
+  currencyCode: string;
   imageUrl?: string;
-  prepTime?: number; // in minutes
+  prepTime?: number;
 }
 
 export interface AIChatRoomItem {
@@ -72,17 +103,17 @@ export interface AIChatRoomItem {
   amenities?: string[];
 }
 
-// Define the type for a chat message, now supporting menu items
 interface ChatMessage {
-  text?: string; // Make text optional
+  text: string;
   sender: "user" | "ai" | "system";
   items?: (AIChatMenuItem | AIChatRoomItem)[];
-  cardType?: "menuItem" | "room"; // indicates how to render items
+  cardType?: "menuItem" | "room";
+  isStreaming?: boolean;
 }
 
 interface AiChatAssistantProps {
-  serviceId: string; // The branch service id (not branch id)
-  branchId: string;  // Needed for navigation links in cards
+  serviceId: string;
+  branchId: string;
   payload: string;
   serviceType: ServiceType;
 }
@@ -93,7 +124,6 @@ export function AiChatAssistant({
   payload,
   serviceType,
 }: AiChatAssistantProps) {
-  
 
   const activeConfig = aiServiceConfigs[serviceType];
   const [createSessionMutation] = useCreateChatSessionMutation();
@@ -101,7 +131,7 @@ export function AiChatAssistant({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isInputActive, setIsInputActive] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { text: activeConfig.initialMessage, sender: "ai" },
+    { text: activeConfig.initialMessage, sender: "ai", isStreaming: false },
   ]);
   const [currentInput, setCurrentInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -113,8 +143,7 @@ export function AiChatAssistant({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<AIWebSocketClient | null>(null);
 
-  // Hook to fetch a stored session's data
-  const { data: storedSession, refetch: refetchSession } =
+  const { data: storedSession } =
     useGetChatSessionQuery(sessionId || "", {
       skip: !shouldFetchSession || !sessionId,
     });
@@ -123,47 +152,110 @@ export function AiChatAssistant({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking]);
 
-  // Initialize WebSocket client
+  // WebSocket initialization
   useEffect(() => {
     try {
       const client = new AIWebSocketClient();
       wsRef.current = client;
 
-      client.onOpen(() => setIsWsConnected(true));
-      client.onClose(() => setIsWsConnected(false));
-      client.onError(() => setIsWsConnected(false));
+      client.onOpen(() => { 
+        setIsWsConnected(true); 
+        console.log("[WS] Connected");
+      });
+      client.onClose(() => { 
+        setIsWsConnected(false); 
+        console.log("[WS] Closed");
+      });
+      client.onError(() => { 
+        setIsWsConnected(false); 
+        console.error("[WS] Error"); 
+      });
 
-      client.onMessage((msg: WSResponse) => {
-        const payload = msg.payload || {};
+      client.onMessage((rawMsg: string | any) => {
+        try {
+          // Handle both string and already-parsed object
+          const msg: WSResponse = typeof rawMsg === 'string' ? JSON.parse(rawMsg) : rawMsg;
+          console.log("[WS] Received message:", msg);
 
-        if (payload.items && Array.isArray(payload.items) && payload.items.length > 0) {
-          const aiMsg: ChatMessage = {
-            text: payload.text || payload.title || activeConfig.specialResponse.responseText,
-            sender: "ai",
-            items: payload.items,
-            cardType: payload.cardType || activeConfig.specialResponse.cardType,
-          };
-          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
-          setIsThinking(false);
-          return;
-        }
+          const structuredData = msg.payload || {};
 
-        if (payload.text) {
-          const aiMsg: ChatMessage = { text: payload.text, sender: "ai" };
-          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
-          setIsThinking(false);
-          return;
-        }
+          // Handle structured data with items (cards)
+          if (structuredData.items && Array.isArray(structuredData.items) && structuredData.items.length > 0) {
+            const cardMessage: ChatMessage = {
+              text: structuredData.text || structuredData.title || activeConfig.specialResponse.responseText,
+              sender: "ai",
+              items: structuredData.items,
+              cardType: structuredData.cardType || activeConfig.specialResponse.cardType,
+              isStreaming: false,
+            };
+            setMessages(prev => [...prev.filter(m => m.sender !== "system"), cardMessage]);
+            setIsThinking(false);
+            return;
+          }
 
-        if (typeof msg.payload === "string") {
-          const aiMsg: ChatMessage = { text: msg.payload as string, sender: "ai" };
-          setMessages((prev) => [...prev.filter(m => m.sender !== "system"), aiMsg]);
-          setIsThinking(false);
+          // Handle different message types
+          switch (msg.type) {
+            case "connection_established":
+              console.log("[WS] Connection established, session:", msg.session_id);
+              setMessages(prev => prev.filter(m => m.sender !== "system"));
+              break;
+
+            case "user_message":
+              console.log("[WS] User message echoed:", msg.message);
+              // Already in our state, no need to add again
+              break;
+
+            case "assistant_metadata":
+              console.log("[WS] Assistant metadata:", msg.display_name);
+              // You can store this if needed
+              break;
+
+            case "assistant_message_chunk":
+              setMessages(prevMessages => {
+                const lastMessage = prevMessages[prevMessages.length - 1];
+                if (lastMessage && lastMessage.sender === "ai" && lastMessage.isStreaming) {
+                  console.log("[WS] Appending chunk:", msg.chunk);
+                  return [
+                    ...prevMessages.slice(0, -1),
+                    { ...lastMessage, text: (lastMessage.text || "") + (msg.chunk || ""), isStreaming: true }
+                  ];
+                } else {
+                  console.log("[WS] Creating new AI message chunk:", msg.chunk);
+                  return [...prevMessages, { sender: "ai", text: msg.chunk || "", isStreaming: true }];
+                }
+              });
+              break;
+
+            case "session_state":
+              console.log("[WS] Session state:", msg.state);
+              // Handle session state if needed
+              break;
+
+            case "response_complete":
+              setIsThinking(false);
+              console.log("[WS] Response complete");
+              // Mark the last message as no longer streaming
+              setMessages(prevMessages => {
+                const lastMessage = prevMessages[prevMessages.length - 1];
+                if (lastMessage && lastMessage.sender === "ai" && lastMessage.isStreaming) {
+                  return [
+                    ...prevMessages.slice(0, -1),
+                    { ...lastMessage, isStreaming: false }
+                  ];
+                }
+                return prevMessages;
+              });
+              break;
+
+            default:
+              console.warn("[WS] Unhandled message type:", msg.type);
+          }
+        } catch (err) {
+          console.error("[WS] Failed to process message:", rawMsg, err);
         }
       });
 
@@ -172,23 +264,22 @@ export function AiChatAssistant({
         wsRef.current = null;
       };
     } catch (err) {
-      console.warn("AiChatAssistant: failed to init WS client", err);
+      console.error("[WS] Failed to init client", err);
     }
-  }, [serviceType]);
+  }, [serviceType, activeConfig.specialResponse]);
 
-  // Invalidate session if the proxy token (payload) changes
+  // Clear session if token changed
   useEffect(() => {
     const storedData = getStoredSessionData(serviceType);
     if (storedData && storedData.proxyToken !== payload) {
-      console.log("[AiChatAssistant] Proxy token changed. Clearing old session.");
+      console.log("[Session] Token changed, clearing old session");
       clearStoredSession(serviceType);
-      // Reset component state to reflect the cleared session
       setSessionId(null);
-      setMessages([{ text: activeConfig.initialMessage, sender: "ai" }]);
+      setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }]);
     }
   }, [payload, serviceType, activeConfig.initialMessage]);
 
-  // Prevent background scrolling
+  // Prevent scrolling
   useEffect(() => {
     document.body.style.overflow = isChatOpen ? "hidden" : "unset";
     return () => { document.body.style.overflow = "unset"; };
@@ -197,10 +288,11 @@ export function AiChatAssistant({
   // Load past messages
   useEffect(() => {
     if (storedSession?.messages?.length) {
+      console.log("[Session] Loading past messages", storedSession.messages);
       const convertedMessages: ChatMessage[] = storedSession.messages.map(
-        (msg) => ({ text: msg.content, sender: msg.role === "assistant" ? "ai" : "user" })
+        msg => ({ text: msg.content, sender: msg.role === "assistant" ? "ai" : "user", isStreaming: false })
       );
-      setMessages([{ text: activeConfig.initialMessage, sender: "ai" }, ...convertedMessages]);
+      setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }, ...convertedMessages]);
       setTimeout(scrollToBottom, 100);
     }
   }, [storedSession, activeConfig.initialMessage]);
@@ -208,9 +300,7 @@ export function AiChatAssistant({
   // Animate connecting dots
   useEffect(() => {
     if (!isWsConnected && sessionId) {
-      const interval = setInterval(() => {
-        setConnectingDots(prev => (prev.length < 3 ? prev + "." : ""));
-      }, 500);
+      const interval = setInterval(() => setConnectingDots(prev => prev.length < 3 ? prev + "." : ""), 500);
       return () => clearInterval(interval);
     } else {
       setConnectingDots("");
@@ -219,24 +309,19 @@ export function AiChatAssistant({
 
   const connectWebSocket = (connectSessionId: string) => {
     if (!wsRef.current) return;
-    try {
-      const api = BASE_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
-      const normalizedApi = api.replace(/^https?:\/\//, '');
-      const wsBase = `wss://${normalizedApi}`;
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-      const qp: string[] = [];
-      if (token) qp.push(`token=${encodeURIComponent(token)}`);
-      const qs = qp.length ? `?${qp.join("&")}` : "";
-      const wsUrl = `${wsBase}/api/v1/chatbot/sessions/${connectSessionId}/${qs}`;
-      console.log("[AiChatAssistant] Connecting WS to session:", wsUrl);
-      wsRef.current.disconnect();
-      wsRef.current.connect(wsUrl);
+    const api = BASE_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    const normalizedApi = api.replace(/^https?:\/\//, '');
+    const wsBase = `wss://${normalizedApi}`;
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+    const qp: string[] = [];
+    if (token) qp.push(`token=${encodeURIComponent(token)}`);
+    const qs = qp.length ? `?${qp.join("&")}` : "";
+    const wsUrl = `${wsBase}/api/v1/chatbot/sessions/${connectSessionId}/${qs}`;
+    console.log("[WS] Connecting to URL:", wsUrl);
+    wsRef.current.disconnect();
+    wsRef.current.connect(wsUrl);
 
-      // Show connecting system message
-      setMessages(prev => [...prev, { text: `Connecting to Agent${connectingDots}`, sender: "system" }]);
-    } catch (err) {
-      console.warn("AiChatAssistant: failed to connect WS", err);
-    }
+    setMessages(prev => [...prev.filter(m => m.sender !== "system"), { text: `Connecting to Agent${connectingDots}`, sender: "system" }]);
   };
 
   const initializeSession = async () => {
@@ -244,21 +329,19 @@ export function AiChatAssistant({
     try {
       const storedData = getStoredSessionData(serviceType);
       if (storedData && storedData.proxyToken === payload) {
-        console.log("[AiChatAssistant] Valid session found in storage. Loading:", storedData.sessionId);
         setSessionId(storedData.sessionId);
         setShouldFetchSession(true);
         connectWebSocket(storedData.sessionId);
       } else {
-        if (storedData) clearStoredSession(serviceType); // Clean up mismatched session
-        console.log("[AiChatAssistant] No valid session in storage. Creating a new one.");
+        if (storedData) clearStoredSession(serviceType);
         const newSession = await createSessionMutation({ resource_id: serviceId, medium: "branch_service" }).unwrap();
         storeSessionData(serviceType, newSession.id, payload);
         setSessionId(newSession.id);
-        setMessages([{ text: activeConfig.initialMessage, sender: "ai" }]);
+        setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }]);
         connectWebSocket(newSession.id);
       }
     } catch (err) {
-      console.error("AiChatAssistant: failed to initialize session", err);
+      console.error("[Session] Failed to initialize session", err);
     } finally {
       setIsLoadingSession(false);
     }
@@ -277,13 +360,12 @@ export function AiChatAssistant({
   const sendMessage = () => {
     if (!currentInput.trim() || !isWsConnected || !sessionId || !wsRef.current) return;
     const userMessage: ChatMessage = { text: currentInput, sender: "user" };
+    console.log("[Send] User message:", userMessage.text);
     setMessages(prev => [...prev.filter(m => m.sender !== "system"), userMessage]);
     setCurrentInput("");
     setIsThinking(true);
 
-    const clientId = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    const msg: WSMessage = { type: "user_message", id: clientId, payload: { text: userMessage.text, serviceId, payload, serviceType, sessionId } };
-    wsRef.current.send(msg);
+    wsRef.current.send({ message: userMessage.text });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -300,7 +382,7 @@ export function AiChatAssistant({
 
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-16">
-          <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-200 flex flex-col py-0 border-2 ">
+          <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-200 flex flex-col py-0 border-2">
             <CardHeader className="flex flex-row items-center justify-between bg-muted px-4 py-2 rounded-t-lg">
               <div className="flex items-center gap-2">
                 <Bot className="h-6 w-6 text-teal-600" />
@@ -332,11 +414,24 @@ export function AiChatAssistant({
                         </div>
                       ) : (
                         <div className={`max-w-[80%] p-2 rounded-lg ${msg.sender === "user" ? "bg-teal-600 text-white" : msg.sender === "system" ? "bg-text-teal-600 text-black italic" : "bg-muted text-foreground"}`}>
-                          {msg.sender === "system" ? `Connecting to Agent${connectingDots}` : msg.text}
+                          {msg.sender === "system" ? (
+                            `Connecting to Agent${connectingDots}`
+                          ) : msg.sender === "ai" && msg.isStreaming !== false ? (
+                            <TypewriterText text={msg.text} isComplete={msg.isStreaming === false} />
+                          ) : (
+                            msg.text
+                          )}
                         </div>
                       )}
                     </div>
                   ))}
+                  {isThinking && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] p-2 rounded-lg bg-muted text-foreground italic">
+                        Thinking...
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               )}
