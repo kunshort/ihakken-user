@@ -1,17 +1,21 @@
-
-export type WSMessage = {
-  type: string;
-  id?: string; // optional client-side id for correlating responses
-  payload?: any;
-};
-
 export type WSResponse = {
   type: string;
   id?: string;
-  payload?: any;
+  // Add known properties for different message types
+  session_id?: string; // for connection_established
+  message?: string; // for user_message echo
+  display_name?: string; // for assistant_metadata
+  chunk?: string; // for assistant_message_chunk
+  state?: any; // for session_state
+  payload?: {
+    items?: any[];
+    text?: string;
+    title?: string;
+    cardType?: "menuItem" | "room";
+  };
 };
 
-type MessageHandler = (msg: WSResponse) => void;
+type MessageHandler = (msg: string | WSResponse) => void;
 type VoidHandler = () => void;
 
 export class AIWebSocketClient {
@@ -119,7 +123,7 @@ export class AIWebSocketClient {
     this.ws = null;
   }
 
-  send(message: WSMessage) {
+  send(message: Record<string, any>) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn('[AIWebSocketClient] Socket not open. Message not sent:', message);
       return false;

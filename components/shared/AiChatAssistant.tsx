@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, X } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,12 +13,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
+import { bubbleStyles, BubbleStyle } from "./ai-chat-bubble-styles";
 import { aiServiceConfigs, ServiceType } from "@/components/shared/ai-service-configs";
 import { AIWebSocketClient, WSResponse } from "@/lib/ws/aiWebSocket";
 import { BASE_API_URL } from "@/lib/api/base";
+import { cn } from "@/lib/utils";
 import {
   useCreateChatSessionMutation,
   useGetChatSessionQuery,
+  useGetChatbotConfigQuery,
 } from "@/lib/api/services-api";
 
 function getSessionStorageKey(serviceType: string): string {
@@ -53,6 +57,16 @@ function clearStoredSession(serviceType: string): void {
   localStorage.removeItem(getSessionStorageKey(serviceType));
 }
 
+// Helper to decode HTML entities and strip HTML tags for plain text display
+function decodeAndStripHtml(html: string): string {
+  if (typeof window === "undefined" || !html) return "";
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  } catch (e) {
+    return html; // Fallback to original string on error
+  }
+}
 // Typewriter effect component
 function TypewriterText({ text, isComplete }: { text: string; isComplete: boolean }) {
   const [displayText, setDisplayText] = useState("");
@@ -124,14 +138,25 @@ export function AiChatAssistant({
   payload,
   serviceType,
 }: AiChatAssistantProps) {
-
   const activeConfig = aiServiceConfigs[serviceType];
   const [createSessionMutation] = useCreateChatSessionMutation();
+
+  // Fetch dynamic chatbot configuration
+  const { data: chatbotConfig, isLoading: isLoadingConfig } = useGetChatbotConfigQuery(serviceId, {
+    skip: !serviceId,
+  });
+
+  // Prepare dynamic configuration with fallbacks
+  const displayName = chatbotConfig?.displayName || "AI Assistant";
+  const greetingMessage = chatbotConfig?.greetingMessage
+    ? decodeAndStripHtml(chatbotConfig.greetingMessage)
+    : activeConfig.initialMessage;
+  const avatarUrl = chatbotConfig?.avatar ? `${BASE_API_URL || ''}${chatbotConfig.avatar}` : null;
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isInputActive, setIsInputActive] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { text: activeConfig.initialMessage, sender: "ai", isStreaming: false },
+    { text: greetingMessage, sender: "ai", isStreaming: false },
   ]);
   const [currentInput, setCurrentInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -175,7 +200,7 @@ export function AiChatAssistant({
         console.error("[WS] Error"); 
       });
 
-      client.onMessage((rawMsg: string | any) => {
+      client.onMessage((rawMsg: string | WSResponse) => {
         try {
           // Handle both string and already-parsed object
           const msg: WSResponse = typeof rawMsg === 'string' ? JSON.parse(rawMsg) : rawMsg;
@@ -275,9 +300,9 @@ export function AiChatAssistant({
       console.log("[Session] Token changed, clearing old session");
       clearStoredSession(serviceType);
       setSessionId(null);
-      setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }]);
+      setMessages([{ text: greetingMessage, sender: "ai", isStreaming: false }]);
     }
-  }, [payload, serviceType, activeConfig.initialMessage]);
+  }, [payload, serviceType, greetingMessage]);
 
   // Prevent scrolling
   useEffect(() => {
@@ -292,10 +317,10 @@ export function AiChatAssistant({
       const convertedMessages: ChatMessage[] = storedSession.messages.map(
         msg => ({ text: msg.content, sender: msg.role === "assistant" ? "ai" : "user", isStreaming: false })
       );
-      setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }, ...convertedMessages]);
+      setMessages([{ text: greetingMessage, sender: "ai", isStreaming: false }, ...convertedMessages]);
       setTimeout(scrollToBottom, 100);
     }
-  }, [storedSession, activeConfig.initialMessage]);
+  }, [storedSession, greetingMessage]);
 
   // Animate connecting dots
   useEffect(() => {
@@ -337,7 +362,7 @@ export function AiChatAssistant({
         const newSession = await createSessionMutation({ resource_id: serviceId, medium: "branch_service" }).unwrap();
         storeSessionData(serviceType, newSession.id, payload);
         setSessionId(newSession.id);
-        setMessages([{ text: activeConfig.initialMessage, sender: "ai", isStreaming: false }]);
+        setMessages([{ text: greetingMessage, sender: "ai", isStreaming: false }]);
         connectWebSocket(newSession.id);
       }
     } catch (err) {
@@ -375,18 +400,20 @@ export function AiChatAssistant({
   return (
     <>
       <div className="fixed bottom-5 right-4 z-40">
-        <Button onClick={toggleChat} size="icon" className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg">
-          <Bot className="w-7 h-7" />
-        </Button>
+        <Button
+          onClick={toggleChat}
+          size="icon"
+          className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg"
+        ><Bot className="w-7 h-7" /></Button>
       </div>
 
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-16">
-          <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-200 flex flex-col py-0 border-2">
+          <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-600 flex flex-col py-0 border-2">
             <CardHeader className="flex flex-row items-center justify-between bg-muted px-4 py-2 rounded-t-lg">
               <div className="flex items-center gap-2">
-                <Bot className="h-6 w-6 text-teal-600" />
-                <CardTitle className="text-base">AI Assistant</CardTitle>
+                {avatarUrl ? <Image src={avatarUrl} alt="AI Avatar" width={24} height={24} className="rounded-full object-cover" /> : <Bot className="h-6 w-6 text-teal-600" />}
+                <CardTitle className="text-base">{displayName}</CardTitle>
               </div>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleChat}>
                 <X className="h-4 w-4" />
@@ -401,28 +428,35 @@ export function AiChatAssistant({
               ) : (
                 <div className="space-y-3">
                   {messages.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                      {msg.items ? (
-                        <div className="flex flex-col gap-2 max-w-[90%]">
-                          {msg.text && <div className="p-2 rounded-lg bg-muted text-foreground self-start">{msg.text}</div>}
-                          <div className="flex overflow-x-auto gap-3 p-2 -mx-2">
-                            {(msg.cardType === "menuItem" || activeConfig.specialResponse?.cardType === "menuItem") &&
-                              msg.items.map((item) => <MenuItemCard key={item.id} item={item as AIChatMenuItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
-                            {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
-                              msg.items.map((item) => <RoomCard key={item.id} room={item as AIChatRoomItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={`max-w-[80%] p-2 rounded-lg ${msg.sender === "user" ? "bg-teal-600 text-white" : msg.sender === "system" ? "bg-text-teal-600 text-black italic" : "bg-muted text-foreground"}`}>
-                          {msg.sender === "system" ? (
-                            `Connecting to Agent${connectingDots}`
-                          ) : msg.sender === "ai" && msg.isStreaming !== false ? (
-                            <TypewriterText text={msg.text} isComplete={msg.isStreaming === false} />
+                    <div key={index} className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                      {msg.sender === 'ai' && (
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                          {avatarUrl ? (
+                            <Image src={avatarUrl} alt="AI Avatar" width={32} height={32} className="object-cover" />
                           ) : (
-                            msg.text
+                            <Bot className="w-5 h-5 text-teal-600" />
                           )}
                         </div>
                       )}
+                      <div className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                        {msg.items ? (
+                          <div className="flex flex-col gap-2 max-w-[90%]">
+                            {msg.text && <div className="p-2 rounded-lg bg-muted text-foreground self-start">{msg.text}</div>}
+                            <div className="flex overflow-x-auto gap-3 p-2 -mx-2">
+                              {(msg.cardType === "menuItem" || activeConfig.specialResponse?.cardType === "menuItem") &&
+                                msg.items.map((item) => <MenuItemCard key={item.id} item={item as AIChatMenuItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
+                              {(msg.cardType === "room" || activeConfig.specialResponse?.cardType === "room") &&
+                                msg.items.map((item) => <RoomCard key={item.id} room={item as AIChatRoomItem} branchId={branchId} payload={payload} className="w-[180px] flex-shrink-0" />)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`max-w-full p-2 rounded-lg ${msg.sender === "user" ? "bg-teal-600 text-white" : msg.sender === "system" ? "bg-text-teal-600 text-black italic" : "bg-muted text-foreground"}`}
+                          >
+                            {msg.sender === "system" ? `Connecting to Agent${connectingDots}` : msg.sender === "ai" && msg.isStreaming === true ? <TypewriterText text={msg.text} isComplete={false} /> : msg.text}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {isThinking && (
@@ -459,7 +493,11 @@ export function AiChatAssistant({
                   onKeyDown={handleKeyPress}
                   disabled={isLoadingSession || !sessionId || !isWsConnected}
                 />
-                <Button type="submit" size="icon" className="bg-teal-600 hover:bg-teal-700" onClick={sendMessage} disabled={isLoadingSession || !sessionId || !isWsConnected}>
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="bg-teal-600 hover:bg-teal-700"
+                  onClick={sendMessage} disabled={isLoadingSession || !sessionId || !isWsConnected}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
