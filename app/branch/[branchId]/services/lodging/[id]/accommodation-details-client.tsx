@@ -1,12 +1,7 @@
 "use client";
 
 import {
-  ChevronLeft,
-  Wifi,
-  Wind,
-  Coffee,
-  Dumbbell,
-  Users,
+  ChevronLeft, Wifi,Wind,Coffee,Dumbbell,Users,
   Phone,
   House,
   Bed,
@@ -162,7 +157,6 @@ export default function AccommodationDetailsClient({
           </div>
         
         )}
-
         {!isLoading && accommodation && (
           <>
             {/* Price and Booking */}
@@ -180,8 +174,6 @@ export default function AccommodationDetailsClient({
                 Reserve Now
               </Button>
             </div>
-
-            {/* Accommodation Overview */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                <InfoCard
                 icon={<House className="w-5 h-5" />}
@@ -195,11 +187,6 @@ export default function AccommodationDetailsClient({
                   accommodation.roomSize ? `${accommodation.roomSize} sqm` : "N/A"
                 }
               />
-               {/* <InfoCard
-                icon={<Users className="w-5 h-5" />}
-                label="Max Guests"
-                value={floorName}
-              /> */}
               <InfoCard
                 icon={<Users className="w-5 h-5" />}
                 label="Max Guests"

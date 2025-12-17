@@ -3,7 +3,6 @@ export interface ServicesGridProps {
   branchId: string;
   hideLinks?: boolean;
 }
-
 export interface Service {
   id: string;
   title: string;
@@ -21,7 +20,6 @@ export interface Amenity {
   name: string;
   icon?: string;
 }
-
 export interface FloorData {
   floor: string;
   floorName: string;
