@@ -1,12 +1,7 @@
 "use client";
 
 import {
-  ChevronLeft,
-  Wifi,
-  Wind,
-  Coffee,
-  Dumbbell,
-  Users,
+  ChevronLeft, Wifi,Wind,Coffee,Dumbbell,Users,
   Phone,
   House,
   Bed,
@@ -38,6 +33,7 @@ import {
 import GalleryComponent from "@/components/shared/imageGallery";
 import ErrorComponent from "@/components/shared/errorComponent";
 import { LoadingSpinner } from "@/components/shared/loading";
+import { AnalyticsTracker } from "@/components/shared/analytics";
 
 interface AccommodationDetailsClientProps {
   accommodation: Accommodation | undefined;
@@ -92,6 +88,13 @@ export default function AccommodationDetailsClient({
 
   return (
     <>
+      {/* Analytics Tracker: Logs the visit when the accommodation is loaded */}
+      {accommodation?.id && (
+        <AnalyticsTracker
+          eventType="accommodation_visit"
+          resourceId={accommodation.id}
+        />
+      )}
       <div className="relative h-64 md:h-80 overflow-hidden">
         {headerImages.length > 0 ? (
           <div className="relative w-full h-full">
@@ -154,7 +157,6 @@ export default function AccommodationDetailsClient({
           </div>
         
         )}
-
         {!isLoading && accommodation && (
           <>
             {/* Price and Booking */}
@@ -172,8 +174,6 @@ export default function AccommodationDetailsClient({
                 Reserve Now
               </Button>
             </div>
-
-            {/* Accommodation Overview */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                <InfoCard
                 icon={<House className="w-5 h-5" />}
@@ -187,11 +187,6 @@ export default function AccommodationDetailsClient({
                   accommodation.roomSize ? `${accommodation.roomSize} sqm` : "N/A"
                 }
               />
-               {/* <InfoCard
-                icon={<Users className="w-5 h-5" />}
-                label="Max Guests"
-                value={floorName}
-              /> */}
               <InfoCard
                 icon={<Users className="w-5 h-5" />}
                 label="Max Guests"
