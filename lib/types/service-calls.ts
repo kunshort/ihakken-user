@@ -13,6 +13,7 @@ export interface ServiceCall {
   token?: string;
   serverUrl?: string;
   serviceType?: string;
+  callSessionId?: string;
 }
 
 export interface InitiateCallRequest {
@@ -24,12 +25,26 @@ export interface InitiateCallRequest {
 export interface InitiateCallResponse {
   call_session_id: string;
   room_name: string;
-  token: string;
-  server_url: string;
+  userToken: string;
   status: string;
   service_name?: string;
   service_type?: string;
   metadata?: Record<string, any>;
+  server_url?: string;
+}
+
+// For the actual API response structure
+export interface ApiInitiateCallResponse {
+  erc: number;
+  msg: string;
+  total: number;
+  next: string | null;
+  data: {
+    callSessionId: string;
+    roomName: string;
+    userToken: string;
+    status: string;
+  };
 }
 
 export interface EndCallRequest {
@@ -67,7 +82,6 @@ export interface Service {
   branchService: string;
   branchId: string;
   branchServiceName: string;
-  // For frontend compatibility
   color?: string;
   bgColor?: string;
   borderColor?: string;

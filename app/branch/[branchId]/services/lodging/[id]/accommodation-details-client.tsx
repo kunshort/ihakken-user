@@ -205,7 +205,7 @@ export default function AccommodationDetailsClient({
           getImageUrl={getImageUrl}
         />
 
-        {/* Call Service Button */}
+        {/* Call Service Button
         <div className="text-center mb-8">
           <Button
             variant="outline"
@@ -215,7 +215,7 @@ export default function AccommodationDetailsClient({
             <Phone className="w-4 h-4" />
             Call Service
           </Button>
-        </div>
+        </div> */}
       </div>
     </>
   );

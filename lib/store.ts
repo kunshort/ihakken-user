@@ -4,6 +4,7 @@ import { lodgingApi } from "./api/lodging"
 import { servicesApi } from "./api/services-api"
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { staffUnitsApi } from "@/lib/api/staffUnitsApi";
+import { serviceCallsAPI } from "@/lib/api/service-calls-api";
 
 export const store = configureStore({
   reducer: {
@@ -11,13 +12,15 @@ export const store = configureStore({
     [lodgingApi.reducerPath]: lodgingApi.reducer,
     [servicesApi.reducerPath]: servicesApi.reducer,
     [staffUnitsApi.reducerPath]: staffUnitsApi.reducer,
+    [serviceCallsAPI.reducerPath]: serviceCallsAPI.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(restaurantApi.middleware)
       .concat(lodgingApi.middleware)
       .concat(servicesApi.middleware)
-      .concat(staffUnitsApi.middleware),
+      .concat(staffUnitsApi.middleware)
+      .concat(serviceCallsAPI.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>

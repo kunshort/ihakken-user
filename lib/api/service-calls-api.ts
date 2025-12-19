@@ -1,120 +1,52 @@
-// lib/api/service-calls-api.ts
+// lib/api/service-calls-rtk-api.ts
 import {
-  CallStatusResponse,
+  ApiInitiateCallResponse,
   EndCallRequest,
   EndCallResponse,
   InitiateCallRequest,
   InitiateCallResponse,
 } from "@/lib/types/service-calls";
-import { toast } from "sonner";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "./base";
 
-class ServiceCallsAPI {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = "/api/v1/staffunits/calls";
-  }
-
-  async initiateCall(
-    request: InitiateCallRequest
-  ): Promise<InitiateCallResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}/initiate/`, {
+export const serviceCallsAPI = createApi({
+  reducerPath: "serviceCallsRtkApi",
+  baseQuery,
+  tagTypes: ["Call"],
+  endpoints: (builder) => ({
+    initiateCall: builder.mutation<InitiateCallResponse, InitiateCallRequest>({
+      query: (request) => ({
+        url: "/api/v1/staffunits/calls/initiate/",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(request),
-      });
+        body: request,
+      }),
+      transformResponse: (
+        response: ApiInitiateCallResponse
+      ): InitiateCallResponse => {
+        if (response.erc !== 1) {
+          throw new Error(response.msg || "Failed to initiate call");
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        }));
+        const callData = response.data;
+        return {
+          call_session_id: callData.callSessionId,
+          room_name: callData.roomName,
+          userToken: callData.userToken,
+          status: callData.status,
+        };
+      },
+      invalidatesTags: ["Call"],
+    }),
 
-        throw new Error(
-          errorData.message ||
-            errorData.detail ||
-            errorData.error ||
-            `Failed to initiate call (${response.status})`
-        );
-      }
-
-      const data: InitiateCallResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error("[ServiceCallsAPI] Initiate call error:", error);
-
-      if (error instanceof Error) {
-        toast.error(`Call failed: ${error.message}`);
-      } else {
-        toast.error("Failed to start call. Please try again.");
-      }
-
-      throw error;
-    }
-  }
-
-  async endCall(request: EndCallRequest): Promise<EndCallResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}/end/`, {
+    endCall: builder.mutation<EndCallResponse, EndCallRequest>({
+      query: (request) => ({
+        url: "/api/v1/staffunits/calls/end/",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(request),
-      });
+        body: request,
+      }),
+      invalidatesTags: ["Call"],
+    }),
+  }),
+});
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        }));
-
-        throw new Error(
-          errorData.message ||
-            errorData.detail ||
-            errorData.error ||
-            `Failed to end call (${response.status})`
-        );
-      }
-
-      const data: EndCallResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error("[ServiceCallsAPI] End call error:", error);
-
-      if (error instanceof Error) {
-        toast.error(`Failed to end call: ${error.message}`);
-      } else {
-        toast.error("Failed to end call properly.");
-      }
-
-      throw error;
-    }
-  }
-
-  async getCallStatus(callSessionId: string): Promise<CallStatusResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}/status/${callSessionId}/`, {
-        headers: {
-          Accept: "application/json",
-        },
-        cache: "no-cache",
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get call status: ${response.status}`);
-      }
-
-      const data: CallStatusResponse = await response.json();
-      return data;
-    } catch (error) {
-      console.error("[ServiceCallsAPI] Get call status error:", error);
-      throw error;
-    }
-  }
-}
-
-export const serviceCallsAPI = new ServiceCallsAPI();
+export const { useInitiateCallMutation, useEndCallMutation } = serviceCallsAPI;
