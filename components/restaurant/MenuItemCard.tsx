@@ -5,8 +5,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
-
-// Define the shape of the item data this card expects
 interface MenuItemCardProps {
   item: {
     id: string;
@@ -19,21 +17,8 @@ interface MenuItemCardProps {
   };
   branchId: string;
   payload: string;
-  className?: string; // Allow passing custom classes
+  className?: string; 
 }
-
-// Helper functions moved from AiChatAssistant
-const getCurrencySymbol = (code: string) => {
-  const symbols: Record<string, string> = {
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    CHF: "CHF",
-    XAF: "FCFA",
-    USS: "$",
-  };
-  return symbols[code] || code;
-};
 
 const formatPrepTime = (minutes: number | undefined | null) => {
   if (!minutes) return null;
@@ -44,7 +29,7 @@ const formatPrepTime = (minutes: number | undefined | null) => {
 };
 
 export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payload, className }) => {
-  const currencySymbol = getCurrencySymbol(item.currencyCode);
+  const currencySymbol = item.currencyCode;
   const prepTimeFormatted = formatPrepTime(item.prepTime);
 
   return (
@@ -53,13 +38,11 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
         payload ? `?payload=${payload}` : ""
       }`}
     >
-      {/* The root Card now accepts a custom className for flexible styling */}
       <Card
         className={cn(
           "overflow-hidden shadow-sm border-teal-200 hover:shadow-md transition-shadow py-0",
           className
         )}>
-        {/* IMAGE */}
         <div className="relative h-28 w-full overflow-hidden bg-linear-to-br from-teal-100 to-teal-50">
           {item.imageUrl ? (
             <Image
@@ -76,7 +59,6 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
           )}
         </div>
 
-        {/* CONTENT */}
         <CardContent className="p-2 pt-0 flex flex-col ">
           <h4 className="font-semibold text-foreground text-sm line-clamp-2 mb-1">{item.name}</h4>
           <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.shortDescription}</p>
