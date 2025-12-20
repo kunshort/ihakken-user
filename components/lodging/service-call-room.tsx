@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from '@/components/ui/button'
+import { useCallWebSocket } from '@/hooks/useCallWebSocket'
 import { ServiceCall } from '@/lib/types/service-calls'
 import {
     LiveKitRoom,
@@ -10,19 +11,20 @@ import {
 } from '@livekit/components-react'
 import '@livekit/components-styles'
 import {
+    Bluetooth,
+    BluetoothConnected,
+    CheckCircle,
+    ChevronDown,
+    Clock,
     Mic,
     MicOff,
     Phone,
     PhoneOff,
     RotateCw,
-    Volume2,
+    Smartphone,
     User,
-    Users,
-    Clock,
-    AlertCircle,
-    CheckCircle,
-    XCircle,
-    Shield
+    Volume2,
+    XCircle
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -37,19 +39,25 @@ interface ServiceCallRoomProps {
     retrying?: boolean
     onLiveKitConnected?: () => void
     onLiveKitDisconnected?: () => void
+    callSessionId: string
 }
 
-const COLORS = {
-    primary: '#128C7E', // WhatsApp green
-    primaryDark: '#075E54',
-    primaryLight: '#25D366',
-    background: '#F0F2F5',
-    card: '#FFFFFF',
-    textPrimary: '#3B4A54',
-    textSecondary: '#667781',
-    border: '#E0E0E0',
-    danger: '#F44336',
-    warning: '#FF9800',
+// Fixed icon mapping - using proper Lucide icon names
+const serviceIconMap: Record<string, string> = {
+    'MdAddCall': 'PhoneCall',
+    'FaAdn': 'Phone',
+    'default': 'Phone'
+};
+
+// Helper function to get Lucide icon component
+const getLucideIcon = (iconName: string) => {
+    const icons: Record<string, any> = {
+        'PhoneCall': Phone,
+        'Phone': Phone,
+        'User': User,
+        'default': Phone
+    };
+    return icons[iconName] || icons.default;
 }
 
 export function ServiceCallRoom({
@@ -61,10 +69,12 @@ export function ServiceCallRoom({
     onRetry,
     retrying = false,
     onLiveKitConnected,
-    onLiveKitDisconnected
+    onLiveKitDisconnected,
+    callSessionId
 }: ServiceCallRoomProps) {
     // DEBUG: Log what we receive
     console.log('🎯 ServiceCallRoom DEBUG - Received props:', {
+        callSessionId,
         callStatus,
         hasServiceCall: !!serviceCall,
         roomName: serviceCall?.roomName,
@@ -75,24 +85,122 @@ export function ServiceCallRoom({
     const [localCallStatus, setLocalCallStatus] = useState<string>(callStatus)
     const [isLiveKitConnected, setIsLiveKitConnected] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
-    const [volume, setVolume] = useState(100)
     const [roomError, setRoomError] = useState<string | null>(null)
     const [reconnecting, setReconnecting] = useState(false)
     const [showConnectingUI, setShowConnectingUI] = useState(false)
-    const [callTimer, setCallTimer] = useState(callDuration)
+    const [callTimer, setCallTimer] = useState(0)
+    const [isBluetoothConnected, setIsBluetoothConnected] = useState(false)
+    const [isSpeakerOn, setIsSpeakerOn] = useState(false)
+    const [showAudioDropdown, setShowAudioDropdown] = useState(false)
+    const [participantJoined, setParticipantJoined] = useState(false)
+    const [displayCallState, setDisplayCallState] = useState<string>('calling')
+    const [timerStarted, setTimerStarted] = useState(false)
 
     const audioContextRef = useRef<AudioContext | null>(null)
     const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const disconnectTimerRef = useRef<NodeJS.Timeout | null>(null)
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const dropdownRef = useRef<HTMLDivElement | null>(null)
 
     const LIVEKIT_WS_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL
 
-    // Timer management
+    // Get the appropriate icon for the service
+    const getServiceIcon = useCallback(() => {
+        const iconName = serviceCall?.icon || 'default';
+        const mappedIcon = serviceIconMap[iconName] || serviceIconMap.default;
+        return getLucideIcon(mappedIcon);
+    }, [serviceCall?.icon]);
+
+    const ServiceIcon = getServiceIcon();
+
+    // WebSocket for call states
+    const {
+        callState: wsCallState,
+        isConnected: wsConnected,
+        error: wsError,
+        sendMessage: sendWsMessage,
+        disconnectWebSocket: disconnectWs
+    } = useCallWebSocket({
+        callSessionId,
+        onStateUpdate: (state, data) => {
+            console.log('🔄 WebSocket state update:', state, data);
+
+            // Handle different states
+            switch (state) {
+                case 'calling':
+                    setDisplayCallState('Calling...');
+                    setParticipantJoined(false);
+                    setTimerStarted(false);
+                    break;
+
+                case 'ringing':
+                    setDisplayCallState('Ringing...');
+                    setParticipantJoined(false);
+                    setTimerStarted(false);
+                    startRingtone();
+                    break;
+
+                case 'connected':
+                    setDisplayCallState('');
+                    setParticipantJoined(true);
+                    setTimerStarted(true);
+                    stopAllSounds();
+
+                    // Start timer when connected
+                    setCallTimer(0);
+                    break;
+
+                case 'ended':
+                case 'failed':
+                    setDisplayCallState(state === 'ended' ? 'Call Ended' : 'Call Failed');
+                    setParticipantJoined(false);
+                    setTimerStarted(false);
+                    stopAllSounds();
+                    break;
+            }
+
+            // Update local call status for component logic
+            setLocalCallStatus(state);
+        },
+        onConnected: () => {
+            console.log('✅ WebSocket connected');
+        },
+        onError: (error) => {
+            console.error('❌ WebSocket error:', error);
+            toast.error('Connection lost. Trying to reconnect...');
+        }
+    });
+
+    // Simulate Bluetooth connection check
     useEffect(() => {
-        if (localCallStatus === 'connected' && isLiveKitConnected) {
-            // Start timer when call is connected
+        setIsBluetoothConnected(false);
+        console.log('Bluetooth status: Not connected (default)');
+    }, []);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowAudioDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    // Timer management - only start when participant has joined
+    useEffect(() => {
+        if (timerStarted && participantJoined) {
+            // Clear any existing timer
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+            }
+
+            // Start new timer
             timerIntervalRef.current = setInterval(() => {
                 setCallTimer(prev => prev + 1)
             }, 1000)
@@ -104,14 +212,13 @@ export function ServiceCallRoom({
                 }
             }
         } else {
-            // Reset timer when not connected
-            setCallTimer(callDuration)
+            // Stop timer
             if (timerIntervalRef.current) {
-                clearInterval(timerIntervalRef.current)
-                timerIntervalRef.current = null
+                clearInterval(timerIntervalRef.current);
+                timerIntervalRef.current = null;
             }
         }
-    }, [localCallStatus, isLiveKitConnected, callDuration])
+    }, [timerStarted, participantJoined])
 
     // Update local status when prop changes
     useEffect(() => {
@@ -121,18 +228,7 @@ export function ServiceCallRoom({
             setLocalCallStatus(callStatus);
 
             // Handle state transitions
-            if (callStatus === 'ringing') {
-                console.log('🔔 Starting ringtone');
-                startRingtone();
-
-                // Auto-accept after 3 seconds for demo
-                const timer = setTimeout(() => {
-                    console.log('✅ Auto-accepting call (demo)');
-                    onCallAccepted?.();
-                }, 3000);
-
-                return () => clearTimeout(timer);
-            } else if (callStatus === 'connecting') {
+            if (callStatus === 'connecting') {
                 console.log('🔄 Connecting state received');
                 setShowConnectingUI(true);
                 stopAllSounds();
@@ -144,7 +240,7 @@ export function ServiceCallRoom({
                         setRoomError('Connection timeout. Please try again.');
                         toast.error('Failed to connect to audio server');
                     }
-                }, 10000); // 10 second timeout
+                }, 10000);
             } else {
                 stopAllSounds();
 
@@ -155,7 +251,7 @@ export function ServiceCallRoom({
                 }
             }
         }
-    }, [callStatus, localCallStatus, onCallAccepted, isLiveKitConnected]);
+    }, [callStatus, localCallStatus, isLiveKitConnected]);
 
     // SOUND MANAGEMENT
     const startRingtone = useCallback(() => {
@@ -226,8 +322,14 @@ export function ServiceCallRoom({
             timerIntervalRef.current = null;
         }
 
+        // Disconnect WebSocket
+        disconnectWs();
+
+        // Stop all sounds
+        stopAllSounds();
+
         onCallEnd();
-    }, [onCallEnd])
+    }, [onCallEnd, disconnectWs, stopAllSounds])
 
     const handleRetry = useCallback(() => {
         console.log('🔄 Retrying call');
@@ -274,7 +376,7 @@ export function ServiceCallRoom({
             disconnectTimerRef.current = setTimeout(() => {
                 console.log('⏰ Auto-end timer expired - ending call');
                 handleEndCall();
-            }, 5000); // Give 5 seconds for reconnection
+            }, 5000);
 
             setReconnecting(true);
 
@@ -294,11 +396,64 @@ export function ServiceCallRoom({
         }
     }, []);
 
+    // Toggle speaker
+    const toggleSpeaker = useCallback(() => {
+        setIsSpeakerOn(prev => !prev);
+        toast.info(isSpeakerOn ? 'Speaker off - Using earpiece' : 'Speaker on - Loud mode activated');
+    }, [isSpeakerOn]);
+
+    // Toggle Bluetooth
+    const toggleBluetooth = useCallback(() => {
+        setIsBluetoothConnected(prev => !prev);
+        if (!isBluetoothConnected) {
+            toast.success('Bluetooth connected');
+        } else {
+            toast.info('Bluetooth disconnected');
+        }
+    }, [isBluetoothConnected]);
+
+    // Switch to speaker from Bluetooth dropdown
+    const switchToSpeaker = useCallback(() => {
+        setIsBluetoothConnected(false);
+        setIsSpeakerOn(true);
+        setShowAudioDropdown(false);
+        toast.info('Switched to speaker');
+    }, []);
+
+    // Switch to Bluetooth from speaker
+    const switchToBluetooth = useCallback(() => {
+        setIsBluetoothConnected(true);
+        setIsSpeakerOn(false);
+        setShowAudioDropdown(false);
+        toast.success('Switched to Bluetooth');
+    }, []);
+
+    // Get audio output icon based on state
+    const getAudioOutputIcon = () => {
+        if (isBluetoothConnected) {
+            return <BluetoothConnected className="w-6 h-6" />;
+        } else {
+            return isSpeakerOn ? <Volume2 className="w-6 h-6" /> : <Smartphone className="w-6 h-6" />;
+        }
+    }
+
+    // Get audio output label
+    const getAudioOutputLabel = () => {
+        if (isBluetoothConnected) {
+            return 'Bluetooth';
+        } else {
+            return isSpeakerOn ? 'Speaker On' : 'Earpiece';
+        }
+    }
+
     // CLEANUP
     useEffect(() => {
         return () => {
             console.log('🧹 ServiceCallRoom cleanup');
             stopAllSounds();
+
+            // Disconnect WebSocket
+            disconnectWs();
 
             // Clear timers
             if (disconnectTimerRef.current) {
@@ -316,7 +471,7 @@ export function ServiceCallRoom({
                 timerIntervalRef.current = null;
             }
         }
-    }, [stopAllSounds])
+    }, [stopAllSounds, disconnectWs])
 
     // UTILITY FUNCTIONS
     const formatTime = useCallback((seconds: number) => {
@@ -329,7 +484,7 @@ export function ServiceCallRoom({
     const isTokenValid = useCallback((token: string): boolean => {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            const expiry = payload.exp * 1000; // Convert to milliseconds
+            const expiry = payload.exp * 1000;
             const now = Date.now();
             const isValid = expiry > now;
 
@@ -348,6 +503,30 @@ export function ServiceCallRoom({
     }, []);
 
     // RENDER STATES
+    const renderCallStateInfo = () => {
+        if (participantJoined && timerStarted) {
+            // Show timer when participant has joined
+            return (
+                <div className="flex items-center justify-center gap-2 mt-4">
+                    <Clock className="w-5 h-5 text-[#128C7E]" />
+                    <span className="text-xl font-mono font-bold text-[#128C7E]">
+                        {formatTime(callTimer)}
+                    </span>
+                </div>
+            );
+        } else if (displayCallState) {
+            // Show call state text (Calling... or Ringing...)
+            return (
+                <div className="mt-4">
+                    <p className="text-lg font-medium text-[#128C7E] animate-pulse">
+                        {displayCallState}
+                    </p>
+                </div>
+            );
+        }
+        return null;
+    }
+
     const renderRinging = () => {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-b from-gray-50 to-white">
@@ -356,7 +535,7 @@ export function ServiceCallRoom({
                     <div className="w-40 h-40 rounded-full bg-gradient-to-r from-[#128C7E] to-[#25D366] flex items-center justify-center shadow-lg">
                         <Phone className="w-20 h-20 text-white" />
                     </div>
-                    
+
                     {/* Ringing circles animation */}
                     <div className="absolute inset-0">
                         {[...Array(4)].map((_, i) => (
@@ -377,13 +556,7 @@ export function ServiceCallRoom({
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold mb-2 text-gray-800">Calling...</h2>
                     <p className="text-lg text-gray-600 mb-1">{serviceCall.serviceName}</p>
-                    <p className="text-sm text-gray-500">Ringing...</p>
-                </div>
-
-                {/* Call Timer - Show 00:00 when ringing */}
-                <div className="flex items-center gap-2 mb-10">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <span className="text-lg font-mono font-medium text-gray-700">00:00</span>
+                    {renderCallStateInfo()}
                 </div>
 
                 {/* Call Controls */}
@@ -411,7 +584,7 @@ export function ServiceCallRoom({
                             <div className="absolute inset-0 rounded-full border-4 border-white/20"></div>
                         </div>
                     </div>
-                    
+
                     {/* Connecting dots animation */}
                     <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-2">
                         {[...Array(3)].map((_, i) => (
@@ -428,7 +601,7 @@ export function ServiceCallRoom({
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold mb-2 text-gray-800">Connecting...</h2>
                     <p className="text-lg text-gray-600 mb-1">{serviceCall.serviceName}</p>
-                    <p className="text-sm text-gray-500">Establishing secure connection</p>
+                    {renderCallStateInfo()}
                 </div>
 
                 {/* Progress Bar */}
@@ -497,24 +670,36 @@ export function ServiceCallRoom({
                         <ActiveCallUI
                             isMuted={isMuted}
                             setIsMuted={setIsMuted}
-                            volume={volume}
-                            setVolume={setVolume}
                             serviceName={serviceCall.serviceName}
                             callDuration={callTimer}
                             formatTime={formatTime}
                             onEndCall={handleEndCall}
                             reconnecting={reconnecting}
                             onReconnected={handleLiveKitReconnected}
+                            isBluetoothConnected={isBluetoothConnected}
+                            isSpeakerOn={isSpeakerOn}
+                            showAudioDropdown={showAudioDropdown}
+                            setShowAudioDropdown={setShowAudioDropdown}
+                            onToggleSpeaker={toggleSpeaker}
+                            onToggleBluetooth={toggleBluetooth}
+                            onSwitchToSpeaker={switchToSpeaker}
+                            onSwitchToBluetooth={switchToBluetooth}
+                            getAudioOutputIcon={getAudioOutputIcon}
+                            getAudioOutputLabel={getAudioOutputLabel}
+                            dropdownRef={dropdownRef}
+                            serviceIcon={ServiceIcon}
+                            participantJoined={participantJoined}
+                            renderCallStateInfo={renderCallStateInfo}
                         />
                     ) : (
                         // Show connecting overlay while LiveKit is connecting
-                        <div className="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-gray-50 to-white">
+                        <div className="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-gray-50 to white">
                             <RotateCw className="w-16 h-16 text-[#128C7E] animate-spin mx-auto mb-6" />
-                                <h2 className="text-2xl font-bold mb-2 text-center">Finalizing connection...</h2>
+                            {/* <h2 className="text-2xl font-bold mb-2 text-center">Finalizing connection...</h2>
                             <p className="text-gray-600 mb-6">Almost ready to start the call</p>
                             <div className="w-64 h-1 bg-gray-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-gradient-to-r from-[#128C7E] to-[#25D366] animate-pulse w-3/4"></div>
-                            </div>
+                            </div> */}
                         </div>
                     )}
                 </LiveKitRoom>
@@ -528,7 +713,7 @@ export function ServiceCallRoom({
                 <div className="w-32 h-32 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-8">
                     <XCircle className="w-20 h-20 text-red-500" />
                 </div>
-                
+
                 <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold mb-3 text-gray-800">Call Failed</h2>
                     <p className="text-gray-600 mb-2">{message}</p>
@@ -623,22 +808,15 @@ export function ServiceCallRoom({
         localCallStatus,
         isLiveKitConnected,
         showConnectingUI,
+        wsCallState,
+        displayCallState,
+        participantJoined
     });
 
     // DECISION: What to render based on state
     if (localCallStatus === 'ringing') {
         return (
-            <div className="rounded-2xl overflow-hidden shadow-2xl h-[600px] border border-gray-200 bg-white">
-                <div className="bg-[#128C7E] text-white text-xs p-3 font-medium flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>Calling {serviceCall.serviceName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-3 h-3" />
-                        <span className="text-xs">End-to-End Encrypted</span>
-                    </div>
-                </div>
+            <div className="rounded-2xl overflow-hidden shadow-2xl h-[550px] border border-gray-200 bg-white">
                 <div className="h-full">
                     {renderRinging()}
                 </div>
@@ -648,11 +826,7 @@ export function ServiceCallRoom({
 
     if (localCallStatus === 'failed' || localCallStatus === 'ended') {
         return (
-            <div className="rounded-2xl overflow-hidden shadow-2xl h-[600px] border border-gray-200 bg-white">
-                <div className="bg-gray-800 text-white text-xs p-3 font-medium flex items-center justify-between">
-                    <span>Call {localCallStatus === 'failed' ? 'Failed' : 'Ended'}</span>
-                    <Shield className="w-3 h-3" />
-                </div>
+            <div className="rounded-2xl overflow-hidden shadow-2xl h-[550px] border border-gray-200 bg-white">
                 <div className="h-full">
                     {renderEnded()}
                 </div>
@@ -663,17 +837,7 @@ export function ServiceCallRoom({
     // For 'connecting' or 'connected' states with valid serviceCall
     if (serviceCall?.roomName && serviceCall?.token) {
         return (
-            <div className="rounded-2xl overflow-hidden shadow-2xl h-[600px] border border-gray-200 bg-white">
-                <div className="bg-[#128C7E] text-white text-xs p-3 font-medium flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{isLiveKitConnected ? 'Call Connected' : 'Connecting...'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-3 h-3" />
-                        <span className="text-xs">End-to-End Encrypted</span>
-                    </div>
-                </div>
+            <div className="rounded-2xl overflow-hidden shadow-2xl h-[550px] border border-gray-200 bg-white">
                 <div className="h-full">
                     {renderLiveKitRoom()}
                 </div>
@@ -683,10 +847,7 @@ export function ServiceCallRoom({
 
     // Fallback
     return (
-        <div className="rounded-2xl overflow-hidden shadow-2xl h-[600px] border border-gray-200 bg-white">
-            <div className="bg-[#128C7E] text-white text-xs p-3 font-medium">
-                Audio Call
-            </div>
+        <div className="rounded-2xl overflow-hidden shadow-2xl h-[550px] border border-gray-200 bg-white">
             <div className="h-full">
                 {renderConnecting()}
             </div>
@@ -698,27 +859,51 @@ export function ServiceCallRoom({
 interface ActiveCallUIProps {
     isMuted: boolean
     setIsMuted: (muted: boolean) => void
-    volume: number
-    setVolume: (volume: number) => void
     serviceName: string
     callDuration: number
     formatTime: (seconds: number) => string
     onEndCall: () => void
     reconnecting: boolean
     onReconnected?: () => void
+    isBluetoothConnected: boolean
+    isSpeakerOn: boolean
+    showAudioDropdown: boolean
+    setShowAudioDropdown: (show: boolean) => void
+    onToggleSpeaker: () => void
+    onToggleBluetooth: () => void
+    onSwitchToSpeaker: () => void
+    onSwitchToBluetooth: () => void
+    getAudioOutputIcon: () => React.ReactNode
+    getAudioOutputLabel: () => string
+    dropdownRef: React.RefObject<HTMLDivElement | null>
+    serviceIcon: React.ElementType
+    participantJoined: boolean
+    renderCallStateInfo: () => React.ReactNode | null
 }
 
 function ActiveCallUI({
     isMuted,
     setIsMuted,
-    volume,
-    setVolume,
     serviceName,
     callDuration,
     formatTime,
     onEndCall,
     reconnecting,
-    onReconnected
+    onReconnected,
+    isBluetoothConnected,
+    isSpeakerOn,
+    showAudioDropdown,
+    setShowAudioDropdown,
+    onToggleSpeaker,
+    onToggleBluetooth,
+    onSwitchToSpeaker,
+    onSwitchToBluetooth,
+    getAudioOutputIcon,
+    getAudioOutputLabel,
+    dropdownRef,
+    serviceIcon: ServiceIcon,
+    participantJoined,
+    renderCallStateInfo
 }: ActiveCallUIProps) {
     const { localParticipant } = useLocalParticipant()
     const participants = useParticipants()
@@ -733,12 +918,15 @@ function ActiveCallUI({
             if (isMuted) {
                 await localParticipant.setMicrophoneEnabled(true)
                 setIsMuted(false)
+                toast.success('Microphone on');
             } else {
                 await localParticipant.setMicrophoneEnabled(false)
                 setIsMuted(true)
+                toast.info('Microphone off');
             }
         } catch (error: unknown) {
             console.error('Error toggling microphone:', error)
+            toast.error('Failed to toggle microphone');
         }
     }, [localParticipant, isMuted, setIsMuted])
 
@@ -756,7 +944,7 @@ function ActiveCallUI({
                 <div className="absolute inset-0 bg-black/80 z-50 flex flex-col items-center justify-center">
                     <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
                         <div className="relative inline-block mb-6">
-                            <RotateCw className="w-16 h-16 text-[#128C7E] animate-spin" />
+                            <RotateCw className="w-12 h-12 text-[#128C7E] animate-spin" />
                             <div className="absolute inset-0 rounded-full border-4 border-[#128C7E]/20"></div>
                         </div>
                         <h3 className="text-xl font-bold mb-3 text-gray-800">Reconnecting...</h3>
@@ -780,72 +968,122 @@ function ActiveCallUI({
             <RoomAudioRenderer />
 
             {/* Main Call UI */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8">
-                {/* Participant Avatar */}
-                <div className="relative mb-12">
-                    <div className="w-48 h-48 rounded-full bg-gradient-to-r from-[#128C7E] to-[#25D366] flex items-center justify-center shadow-2xl">
-                        <User className="w-32 h-32 text-white" />
+            <div className="h-full flex flex-col">
+                {/* Top Section - Call Information & Profile */}
+                <div className="flex-1 flex flex-col items-center justify-center p-8 pt-16">
+                    {/* Call Information */}
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold mb-3 text-gray-800">{serviceName}</h2>
+                        {/* Display call state or timer */}
+                        {renderCallStateInfo()}
                     </div>
 
-                    {/* Speaking indicator */}
-                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg">
-                            <div className="flex items-center gap-1">
-                                {[...Array(3)].map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className="w-1.5 h-1.5 bg-[#25D366] rounded-full animate-pulse"
-                                        style={{ animationDelay: `${i * 0.2}s` }}
-                                    />
-                                ))}
+                    {/* Service Icon Avatar */}
+                    <div className="relative mb-12">
+                        <div className="w-40 h-40 rounded-full bg-gradient-to-r from-[#128C7E] to-[#25D366] flex items-center justify-center shadow-2xl">
+                            <ServiceIcon className="w-24 h-24 text-white" />
+                        </div>
+
+                        {/* Speaking indicator - only show when participant has joined */}
+                        {participantJoined && (
+                            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg">
+                                    <div className="flex items-center gap-1">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-1.5 h-1.5 bg-[#25D366] rounded-full animate-pulse"
+                                                style={{ animationDelay: `${i * 0.2}s` }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="text-sm font-medium text-[#128C7E]">Connected</span>
+                                </div>
                             </div>
-                            {/* <span className="text-sm font-medium text-gray-700">
-                                {participants.length} participant{participants.length !== 1 ? 's' : ''}
-                            </span> */}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Call Information */}
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold mb-3 text-gray-800">{serviceName}</h2>
-                    <div className="flex items-center justify-center gap-4">
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
-                            <Clock className="w-5 h-5 text-[#128C7E]" />
-                            <span className="text-xl font-mono font-bold text-gray-800">
-                                {formatTime(callDuration)}
-                            </span>
-                        </div>
-                    </div>
-                    <p className="text-gray-500 mt-4">
-                        {reconnecting ? 'Reconnecting...' : 'Secure audio connection active'}
-                    </p>
-                </div>
-
-                {/* Call Controls */}
-                <div className="flex items-center gap-6">
-                    {/* Mute Toggle */}
-                    <Button
-                        onClick={toggleMicrophone}
-                        variant="outline"
-                        className={`rounded-full p-5 h-auto ${isMuted ? 'border-red-300 bg-red-50 hover:bg-red-100' : 'border-gray-300 bg-white hover:bg-gray-50'}`}
-                        disabled={reconnecting}
-                    >
-                        {isMuted ? (
-                            <MicOff className="w-8 h-8 text-red-500" />
-                        ) : (
-                            <Mic className="w-8 h-8 text-gray-700" />
                         )}
-                    </Button>
+                    </div>
+                </div>
 
-                    {/* End Call Button */}
-                    <Button
-                        onClick={onEndCall}
-                        className="rounded-full p-5 bg-red-500 hover:bg-red-600 text-white shadow-lg"
-                        disabled={reconnecting}
-                    >
-                        <PhoneOff className="w-8 h-8" />
-                    </Button>
+                {/* Bottom Section - Call Controls */}
+                <div className="flex-shrink-0 p-8 pt-0">
+                    <div className="flex items-center justify-center gap-10">
+                        {/* Mute Button */}
+                        <Button
+                            onClick={toggleMicrophone}
+                            variant="outline"
+                            className={`rounded-full p-5 h-auto ${isMuted ? 'border-green-500 bg-green-50 hover:bg-green-100 text-green-700' : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700'}`}
+                            disabled={reconnecting}
+                            title={isMuted ? "Microphone muted - Click to unmute" : "Click to mute microphone"}
+                        >
+                            {isMuted ? (
+                                <MicOff className="w-8 h-8" />
+                            ) : (
+                                <Mic className="w-8 h-8" />
+                            )}
+                        </Button>
+
+                        {/* Audio Output Selector */}
+                        {isBluetoothConnected ? (
+                            <div className="relative" ref={dropdownRef as React.RefObject<HTMLDivElement>}>
+                                <Button
+                                    onClick={() => setShowAudioDropdown(!showAudioDropdown)}
+                                    variant="outline"
+                                    className={`rounded-full p-5 h-auto border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center gap-2 ${showAudioDropdown ? 'ring-2 ring-blue-500' : ''}`}
+                                    disabled={reconnecting}
+                                    title={`Audio output: ${getAudioOutputLabel()}`}
+                                >
+                                    {getAudioOutputIcon()}
+                                    <ChevronDown className="w-4 h-4" />
+                                </Button>
+
+                                {/* Dropdown Menu for Bluetooth */}
+                                {showAudioDropdown && (
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                                        <div className="py-2">
+                                            {/* Switch to Speaker Option */}
+                                            <button
+                                                onClick={onSwitchToSpeaker}
+                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700"
+                                            >
+                                                <Volume2 className="w-5 h-5 text-gray-600" />
+                                                <span className="font-medium">Switch to Speaker</span>
+                                            </button>
+
+                                            {/* Disconnect Bluetooth Option */}
+                                            <button
+                                                onClick={onToggleBluetooth}
+                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700"
+                                            >
+                                                <Bluetooth className="w-5 h-5 text-gray-600" />
+                                                <span className="font-medium">Disconnect Bluetooth</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            // No Bluetooth connected - show simple speaker toggle
+                            <Button
+                                onClick={onToggleSpeaker}
+                                variant="outline"
+                                className={`rounded-full p-5 h-auto ${isSpeakerOn ? 'border-[#128C7E] bg-[#128C7E]/10 hover:bg-[#128C7E]/20 text-[#128C7E]' : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700'}`}
+                                disabled={reconnecting}
+                                title={isSpeakerOn ? "Speaker on - Click to use earpiece" : "Click to turn on speaker"}
+                            >
+                                {getAudioOutputIcon()}
+                            </Button>
+                        )}
+
+                        {/* End Call Button */}
+                        <Button
+                            onClick={onEndCall}
+                            className="rounded-full p-5 bg-red-500 hover:bg-red-600 text-white shadow-lg"
+                            disabled={reconnecting}
+                            title="End call"
+                        >
+                            <PhoneOff className="w-8 h-8" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>

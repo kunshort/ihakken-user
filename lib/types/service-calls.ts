@@ -14,6 +14,7 @@ export interface ServiceCall {
   serverUrl?: string;
   serviceType?: string;
   callSessionId?: string;
+  icon?: string;
 }
 
 export interface InitiateCallRequest {
