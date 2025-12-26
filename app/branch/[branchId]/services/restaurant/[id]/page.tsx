@@ -49,17 +49,17 @@ export default function MenuItemDetailsPage() {
   const serviceId = decoded?.services.find(
     (s: any) => s.serviceType?.toLowerCase() === "restaurant"
   )?.id;
-  
+
   const stableMenuQueryArg = useMemo(
     () => (serviceId ? { serviceId } : skipToken),
     [serviceId]
   );
 
-  const { 
-    data: menuData, 
+  const {
+    data: menuData,
     isLoading: isLoadingMenu,
     error: menuError,
-    refetch: refetchMenu
+    refetch: refetchMenu,
   } = useGetMenuItemsQuery(stableMenuQueryArg);
 
   // Extract menu items from the response (handle the nested data structure)
@@ -167,7 +167,7 @@ export default function MenuItemDetailsPage() {
   }
 
   const { menuItem, customPrice, currency, customizations } = menuAssignment;
-  const currencySymbol = currency?.[0]?.code ;
+  const currencySymbol = currency?.[0]?.code;
   const price = customPrice || menuItem.price;
   const mainImage = menuItem.images?.[0];
   const imageUrl = mainImage?.startsWith("http")
@@ -220,7 +220,7 @@ export default function MenuItemDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-          {/* Analytics Tracker: Logs the visit when the menu item is loaded */}
+      {/* Analytics Tracker: Logs the visit when the menu item is loaded */}
       {menuAssignment?.id && (
         <AnalyticsTracker
           eventType="menu_item_visit"
@@ -267,17 +267,16 @@ export default function MenuItemDetailsPage() {
             <p className="text-sm text-muted-foreground">
               {menuItem.shortDescription}
             </p>
-            
-             <div className="flex gap-4 justify-between  text-3xl font-bold text-[#004248] mt-2">
-               {currencySymbol}  
+
+            <div className="flex gap-4 justify-between  text-3xl font-bold text-[#004248] mt-2">
+              {currencySymbol}
               {price}
-             </div>
-            
+            </div>
           </div>
 
           {/* Main Item Quantity Selector */}
-          <Card className="bg-teal-50">
-            <CardContent className="pt-6">
+          <Card className="bg-teal-50 px-4">
+            <CardContent className="py-2 px-0">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">Quantity</span>
                 <div className="flex items-center gap-3 bg-white border rounded-lg p-2">
@@ -517,8 +516,8 @@ export default function MenuItemDetailsPage() {
 
         {/* Complements Section */}
         {complements.length > 0 && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <Card className="p-2 gap-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-2">
               <div>
                 <CardTitle className="text-base">Complements</CardTitle>
                 <CardDescription>
@@ -528,7 +527,7 @@ export default function MenuItemDetailsPage() {
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 px-0">
               {complements.map((complement: CustomizationItem) => (
                 <div
                   key={complement.id}

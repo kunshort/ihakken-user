@@ -253,15 +253,17 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
       </div>
 
       {/* LOADING STATE */}
-      {(isLoadingMenu || isLoadingCategories) && !menuError && !categoriesError && (
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-muted-foreground">Loading menu...</p>
-        </div>
-      )}
+      {(isLoadingMenu || isLoadingCategories) &&
+        !menuError &&
+        !categoriesError && (
+          <div className="min-h-screen flex items-center justify-center">
+            <p className="text-muted-foreground">Loading menu...</p>
+          </div>
+        )}
 
       {/* ERROR STATE */}
       {(menuError || categoriesError) && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto p-4">
           <ErrorComponent
             errorMessage="Failed to load menu items"
             handleRetry={handleRetry}
@@ -271,65 +273,68 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
       )}
 
       {/* MAIN CONTENT */}
-      {!isLoadingMenu && !isLoadingCategories && !menuError && !categoriesError && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* DESKTOP SIDEBAR */}
-            <div className="hidden md:block md:col-span-1">
-              {/* Set a fixed top value to prevent jumping during scroll */}
-              <div className="bg-linear-to-b from-[#004248] to-transparent rounded-lg p-4 sticky top-[140px]">
-                <h2 className="text-sm font-semibold text-[#004248] mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-[#006666] rounded-full" />
-                  View Categories
-                </h2>
-                <div className="space-y-1">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleSelectCategory(category.id)}
-                      className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        selectedCategoryId === category.id
-                          ? "bg-teal-500 text-white shadow-md"
-                          : "text-foreground hover:bg-white/50"
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
+      {!isLoadingMenu &&
+        !isLoadingCategories &&
+        !menuError &&
+        !categoriesError && (
+          <div className="max-w-6xl mx-auto p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* DESKTOP SIDEBAR */}
+              <div className="hidden md:block md:col-span-1">
+                {/* Set a fixed top value to prevent jumping during scroll */}
+                <div className="bg-linear-to-b from-[#004248] to-transparent rounded-lg p-4 sticky top-[140px]">
+                  <h2 className="text-sm font-semibold text-[#004248] mb-4 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-[#006666] rounded-full" />
+                    View Categories
+                  </h2>
+                  <div className="space-y-1">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => handleSelectCategory(category.id)}
+                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          selectedCategoryId === category.id
+                            ? "bg-teal-500 text-white shadow-md"
+                            : "text-foreground hover:bg-white/50"
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* MENU GRID */}
-            <div className="md:col-span-3" ref={menuGridRef}>
-              {/* MOBILE SIDEBAR TRIGGER - Sticky container */}
-              <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#004248] border border-[#006666] hover:bg-[#006666] transition-colors"
-                >
-                  <Menu className="w-4 h-4 text-[#004248]" />
-                  <span className="text-sm font-medium text-white">
-                    View Categories
-                  </span>
-                </button>
+              {/* MENU GRID */}
+              <div className="md:col-span-3" ref={menuGridRef}>
+                {/* MOBILE SIDEBAR TRIGGER - Sticky container */}
+                <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#004248] border border-[#006666] hover:bg-[#006666] transition-colors"
+                  >
+                    <Menu className="w-4 h-4 text-white" />
+                    <span className="text-sm font-medium text-white">
+                      View Categories
+                    </span>
+                  </button>
+                </div>
+
+                <div className="mb-4 mt-4 md:mt-0">
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery ? "Search results" : "Browse our menu"}
+                  </p>
+                </div>
+
+                <MenuGrid
+                  itemsByCategory={filteredItemsByCategory}
+                  categories={categories}
+                  branchId={branchId}
+                />
               </div>
-
-              <div className="mb-4 mt-6 md:mt-0">
-                <p className="text-sm text-muted-foreground">
-                  {searchQuery ? "Search results" : "Browse our menu"}
-                </p>
-              </div>
-
-              <MenuGrid
-                itemsByCategory={filteredItemsByCategory}
-                categories={categories}
-                branchId={branchId}
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* MOBILE SIDEBAR */}
       <CategorySidebar

@@ -42,7 +42,11 @@ export function ServicesGrid({
             <div className="relative h-48 overflow-hidden bg-linear-to-br from-teal-500 to-teal-700">
               {service.image ? (
                 <img
-                  src={service.image.startsWith('http') ? service.image : BASE_API_URL + service.image}
+                  src={
+                    service.image.startsWith("http")
+                      ? service.image
+                      : BASE_API_URL + service.image
+                  }
                   alt={service.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -61,7 +65,7 @@ export function ServicesGrid({
               </div>
             </div>
 
-            <CardContent className="p-6">
+            <CardContent className="p-6 pt-0">
               <h3 className="font-bold text-xl text-foreground mb-2 group-hover:text-teal-600 transition-colors">
                 {service.name}
               </h3>
@@ -89,11 +93,7 @@ export function ServicesGrid({
         );
 
         if (hideLinks) {
-          return (
-            <div key={service.id}>
-              {cardContent}
-            </div>
-          );
+          return <div key={service.id}>{cardContent}</div>;
         }
 
         return (

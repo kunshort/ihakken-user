@@ -57,7 +57,7 @@ export default function ServicePage() {
         </div>
       </header>
 
-      <div className="p-8 max-w-6xl mx-auto">
+      <div className="p-4 max-w-6xl mx-auto">
         {error && (
           <div
             className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6"
@@ -76,7 +76,7 @@ export default function ServicePage() {
 
         {payloadData ? (
           <div>
-            <div className="mb-8">
+            <div className="mb-4">
               <h1 className="text-4xl font-bold text-gray-800">
                 {payloadData.branch.name}
               </h1>

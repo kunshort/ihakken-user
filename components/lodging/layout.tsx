@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useStaffUnits } from "@/hooks/useStaffUnits";
 import {
   useDecodePayloadQuery,
-  useGetAccommodationsQuery
+  useGetAccommodationsQuery,
 } from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
 import { skipToken } from "@reduxjs/toolkit/query/react";
@@ -69,16 +69,13 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     error: accommodationsError,
     refetch: refetchAccommodations,
   } = useGetAccommodationsQuery(serviceId || skipToken);
-  
-
-
 
   // Always call the hook, but pass serviceId (could be undefined)
   const {
     services: staffUnits,
     isLoading: isLoadingStaffUnits,
     error: staffUnitsError,
-    hasServices: hasStaffUnits
+    hasServices: hasStaffUnits,
   } = useStaffUnits(serviceId);
 
   const accommodationsRaw: Accommodation[] = accommodationsData || [];
@@ -123,7 +120,9 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   // Check if search returned no results
   const hasNoSearchResults = searchQuery && filteredAccommodations.length === 0;
 
-  const backLink = `/branch/services/${serviceId}${payload ? `?payload=${payload}` : ""}`;
+  const backLink = `/branch/services/${serviceId}${
+    payload ? `?payload=${payload}` : ""
+  }`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,15 +130,14 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
       <div className="sticky top-0 z-20 bg-white shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
-          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${isScrolled ? "h-16" : "h-48 md:h-64"
-            }`}
+          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${
+            isScrolled ? "h-16" : "h-48 md:h-64"
+          }`}
         >
           <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
-              <Link
-                href={backLink}
-              >
+              <Link href={backLink}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -150,8 +148,9 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
               </Link>
 
               <h1
-                className={`font-bold text-white transition-all duration-300 ease-in-out ${isScrolled ? "text-xl" : "text-2xl md:text-3xl"
-                  }`}
+                className={`font-bold text-white transition-all duration-300 ease-in-out ${
+                  isScrolled ? "text-xl" : "text-2xl md:text-3xl"
+                }`}
               >
                 {payloadLoading || (!serviceId && !payloadLoading)
                   ? "Loading..."
@@ -180,9 +179,8 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
 
       {/* MAIN CONTENT AREA */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-       
         {/* LOADING STATE - Accommodations */}
-        {(payloadLoading || isLoadingAccommodations)  && (
+        {(payloadLoading || isLoadingAccommodations) && (
           <LoadingSpinner message="Loading accommodations..." />
         )}
 
@@ -254,7 +252,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           branchServiceId={serviceId}
           userInfo={{
             userId: decoded?.user_id || `user-${Date.now()}`,
-            userName: decoded?.user_name || "User"
+            userName: decoded?.user_name || "User",
           }}
         />
       )}
