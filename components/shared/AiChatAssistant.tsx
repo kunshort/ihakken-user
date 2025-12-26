@@ -644,7 +644,7 @@ export function AiChatAssistant({
                       ? `Connecting to Agent${connectingDots}`
                       : "Type your question..."
                   }
-                  className="flex-1 min-h-[40px] max-h-[120px] resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="flex-1 min-h-[40px] max-h-[120px] resize-none focus-visible:ring-0 focus-visible:ring-offset-0 overflow-hidden"
                   autoComplete="on"
                   rows={1}
                   value={currentInput}
