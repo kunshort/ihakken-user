@@ -12,19 +12,25 @@ class ServiceCallsAPI {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = "/api/v1/staffunits/calls";
+    this.baseUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL + "/api/v1/staffunits/calls";
   }
 
   async initiateCall(
     request: InitiateCallRequest
   ): Promise<InitiateCallResponse> {
     try {
+      const token = localStorage.getItem("auth_token");
+      let headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (token) {
+        headers["X-Proxy-Token"] = token;
+      }
       const response = await fetch(`${this.baseUrl}/initiate/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
@@ -41,7 +47,21 @@ class ServiceCallsAPI {
         );
       }
 
-      const data: InitiateCallResponse = await response.json();
+      const json = await response.json();
+      // API returns { erc, msg, data: { callSessionId, roomName, userToken, status } }
+      // Transform to expected InitiateCallResponse format
+      const apiData = json.data;
+      const data: InitiateCallResponse = {
+        call_session_id: apiData.callSessionId,
+        room_name: apiData.roomName,
+        token: apiData.userToken,
+        server_url:
+          apiData.serverUrl || process.env.NEXT_PUBLIC_LIVEKIT_URL || "",
+        status: apiData.status,
+        service_name: apiData.serviceName,
+        service_type: apiData.serviceType,
+        metadata: apiData.metadata,
+      };
       return data;
     } catch (error) {
       console.error("[ServiceCallsAPI] Initiate call error:", error);
@@ -58,12 +78,17 @@ class ServiceCallsAPI {
 
   async endCall(request: EndCallRequest): Promise<EndCallResponse> {
     try {
+      const token = localStorage.getItem("auth_token");
+      let headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (token) {
+        headers["X-Proxy-Token"] = token;
+      }
       const response = await fetch(`${this.baseUrl}/end/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
@@ -97,10 +122,16 @@ class ServiceCallsAPI {
 
   async getCallStatus(callSessionId: string): Promise<CallStatusResponse> {
     try {
+      const token = localStorage.getItem("auth_token");
+      let headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (token) {
+        headers["X-Proxy-Token"] = token;
+      }
       const response = await fetch(`${this.baseUrl}/status/${callSessionId}/`, {
-        headers: {
-          Accept: "application/json",
-        },
+        headers,
         cache: "no-cache",
       });
 

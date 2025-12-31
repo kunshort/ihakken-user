@@ -1,7 +1,12 @@
 "use client";
 
 import {
-  ChevronLeft, Wifi,Wind,Coffee,Dumbbell,Users,
+  ChevronLeft,
+  Wifi,
+  Wind,
+  Coffee,
+  Dumbbell,
+  Users,
   Phone,
   House,
   Bed,
@@ -131,7 +136,9 @@ export default function AccommodationDetailsClient({
 
         <div className="absolute bottom-4 left-4 right-4 text-white z-10">
           <h1 className="text-3xl md:text-4xl font-bold text-balance">
-            {isLoading ? "Loading..." : accommodation?.typeName || "Accommodation"}
+            {isLoading
+              ? "Loading..."
+              : accommodation?.typeName || "Accommodation"}
           </h1>
           {accommodation?.description && (
             <p className="text-sm md:text-base text-white/90 mt-1">
@@ -141,26 +148,24 @@ export default function AccommodationDetailsClient({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto p-4">
         {isLoading && (
-          <LoadingSpinner message=" loading accommodation details"/>
+          <LoadingSpinner message=" loading accommodation details" />
         )}
 
         {!isLoading && (error || !accommodation) && (
-          
           <div className="flex justify-center items-center w-full absolute pt-16">
-             <ErrorComponent
-            errorMessage="Failed to load accommodation details"
-            handleRetry={handleRetry}
-            isRetrying={isLoading}
-          />
+            <ErrorComponent
+              errorMessage="Failed to load accommodation details"
+              handleRetry={handleRetry}
+              isRetrying={isLoading}
+            />
           </div>
-        
         )}
         {!isLoading && accommodation && (
           <>
             {/* Price and Booking */}
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-border ">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-border ">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">
                   Price per night
@@ -175,7 +180,7 @@ export default function AccommodationDetailsClient({
               </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-               <InfoCard
+              <InfoCard
                 icon={<House className="w-5 h-5" />}
                 label="Category"
                 value={accommodation.category}
@@ -184,7 +189,9 @@ export default function AccommodationDetailsClient({
                 icon={<Square className="w-5 h-5" />}
                 label="Room Size"
                 value={
-                  accommodation.roomSize ? `${accommodation.roomSize} sqm` : "N/A"
+                  accommodation.roomSize
+                    ? `${accommodation.roomSize} sqm`
+                    : "N/A"
                 }
               />
               <InfoCard
@@ -197,24 +204,26 @@ export default function AccommodationDetailsClient({
                 label="Bed Configuration"
                 value={accommodation.bedConfiguration}
               />
-              
             </div>
 
             {/* Description */}
-            <div className="mb-8">
+            <div className="mb-4">
               <h2 className="text-xl mb-3 text-foreground">
                 About This Accommodation
               </h2>
-              <p className="text-muted-foreground leading-relaxed">
-                {accommodation.description}
-              </p>
+              {accommodation.description && (
+                <p className="text-muted-foreground leading-relaxed">
+                  {accommodation.description}
+                </p>
+              )}
             </div>
 
             {/* Amenities */}
-            <div className="mb-8">
+            <div className="mb-4">
               <h2 className="text-xl mb-4 text-foreground">Amenities</h2>
               <div className="flex flex-wrap gap-3">
-                {accommodation.amenities && accommodation.amenities.length > 0 ? (
+                {accommodation.amenities &&
+                accommodation.amenities.length > 0 ? (
                   accommodation.amenities.map((amenity) => (
                     <div
                       key={amenity.id}
@@ -235,8 +244,6 @@ export default function AccommodationDetailsClient({
               images={accommodation.mainImage || []}
               getImageUrl={getImageUrl}
             />
-
-            
           </>
         )}
       </div>

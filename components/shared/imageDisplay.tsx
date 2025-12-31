@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ImageValue } from '@/lib/types/interfaces';
+import React, { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageValue } from "@/lib/types/interfaces";
 
 interface ImageDisplayProps {
   images: ImageValue[];
@@ -15,13 +15,15 @@ export default function ImageDisplay({
   alt = "Image",
   height = "h-48",
   className = "",
-  baseUrl =  "https://api.dev.ihakken.com",
+  baseUrl = "https://api.dev.ihakken.com",
 }: ImageDisplayProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!images || images.length === 0) {
     return (
-      <div className={`flex items-center justify-center ${height} bg-gray-100  ${className}`}>
+      <div
+        className={`flex items-center justify-center ${height} bg-gray-100  ${className}`}
+      >
         <p className="text-gray-400 text-sm">No images available</p>
       </div>
     );
@@ -44,8 +46,8 @@ export default function ImageDisplay({
       return URL.createObjectURL(image);
     }
     // Handle backend image object
-    const imagePath = image.image || (image as any).url || '';
-    if (imagePath.startsWith('http')) {
+    const imagePath = image.image || (image as any).url || "";
+    if (imagePath.startsWith("http")) {
       return imagePath;
     }
     return `${baseUrl}${imagePath}`;
@@ -90,15 +92,15 @@ export default function ImageDisplay({
 
       {/* Dots Navigation - only show if more than 1 image */}
       {images.length > 1 && (
-        <div className="flex justify-center gap-2 mt-3">
+        <div className="flex justify-center gap-2 py-1">
           {images.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
               className={`h-2 rounded-full transition-all ${
                 index === currentIndex
-                  ? 'bg-primary w-6'
-                  : 'bg-gray-300 w-2 hover:bg-gray-400'
+                  ? "bg-primary w-6"
+                  : "bg-gray-300 w-2 hover:bg-gray-400"
               }`}
               aria-label={`Go to image ${index + 1}`}
             />

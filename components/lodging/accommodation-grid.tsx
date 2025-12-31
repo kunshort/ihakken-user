@@ -24,7 +24,10 @@ const amenityIcons: Record<string, React.ReactNode> = {
   Concierge: <span className="text-xs">🔔</span>,
 };
 
-export function AccommodationGrid({ accommodations, branchId }: AccommodationGridProps) {
+export function AccommodationGrid({
+  accommodations,
+  branchId,
+}: AccommodationGridProps) {
   const searchParams = useSearchParams();
   const payload = searchParams.get("payload") || "";
 
@@ -50,7 +53,7 @@ export function AccommodationGrid({ accommodations, branchId }: AccommodationGri
 
         return (
           <Link href={href} key={accommodation.id} legacyBehavior={false}>
-            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer h-full">
+            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 gap-4 group cursor-pointer h-full">
               <div className="relative h-48 overflow-hidden bg-muted">
                 {image ? (
                   <Image
@@ -66,11 +69,11 @@ export function AccommodationGrid({ accommodations, branchId }: AccommodationGri
                 )}
               </div>
 
-              <CardContent className="p-5">
+              <CardContent className="pb-4 px-4">
                 <h3 className="font-semibold text-lg text-foreground mb-1">
                   {accommodation.typeName}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-muted-foreground">
                   {accommodation.description || "No description available"}
                 </p>
 
