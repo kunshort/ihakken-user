@@ -489,7 +489,7 @@ export function AiChatAssistant({
         <Button
           onClick={toggleChat}
           size="icon"
-          className="w-14 h-14 bg-teal-600 hover:bg-teal-700 rounded-full shadow-lg"
+          className="w-14 h-14 bg-primary hover:bg-primary/90 rounded-full shadow-lg"
         >
           <Bot className="w-7 h-7" />
         </Button>
@@ -497,7 +497,7 @@ export function AiChatAssistant({
 
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 pb-16">
-          <Card className="w-[90vw] max-w-3xl shadow-xl border-teal-600 flex flex-col py-0 border-2">
+          <Card className="w-[90vw] max-w-3xl shadow-xl border-primary flex flex-col py-0 border-2">
             <CardHeader className="flex flex-row items-center justify-between bg-muted px-4 py-2 rounded-t-lg">
               <div className="flex items-center gap-2">
                 {avatarUrl ? (
@@ -509,7 +509,7 @@ export function AiChatAssistant({
                     className="rounded-full object-cover"
                   />
                 ) : (
-                  <Bot className="h-6 w-6 text-teal-600" />
+                  <Bot className="h-6 w-6 text-primary" />
                 )}
                 <CardTitle className="text-base">{displayName}</CardTitle>
               </div>
@@ -550,7 +550,7 @@ export function AiChatAssistant({
                               className="object-cover"
                             />
                           ) : (
-                            <Bot className="w-5 h-5 text-teal-600" />
+                            <Bot className="w-5 h-5 text-primary" />
                           )}
                         </div>
                       )}
@@ -597,9 +597,9 @@ export function AiChatAssistant({
                           <div
                             className={`max-w-full p-2 rounded-lg ${
                               msg.sender === "user"
-                                ? "bg-teal-600 text-white"
+                                ? "bg-primary text-primary-foreground"
                                 : msg.sender === "system"
-                                ? "bg-text-teal-600 text-black italic"
+                                ? "bg-muted text-muted-foreground italic"
                                 : "bg-muted text-foreground"
                             }`}
                           >
@@ -620,9 +620,26 @@ export function AiChatAssistant({
                     </div>
                   ))}
                   {isThinking && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%] p-2 rounded-lg bg-muted text-foreground italic">
-                        Thinking...
+                    <div className="flex justify-start items-end gap-2">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                        {avatarUrl ? (
+                          <Image
+                            src={avatarUrl}
+                            alt="AI Avatar"
+                            width={32}
+                            height={32}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <Bot className="w-5 h-5 text-primary" />
+                        )}
+                      </div>
+                      <div className="max-w-[80%] p-3 rounded-lg bg-muted text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -657,7 +674,7 @@ export function AiChatAssistant({
                 <Button
                   type="submit"
                   size="icon"
-                  className="bg-teal-600 hover:bg-teal-700"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={sendMessage}
                   disabled={isLoadingSession || !sessionId || !isWsConnected}
                 >

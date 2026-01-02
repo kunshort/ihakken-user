@@ -4,8 +4,8 @@
 import { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MenuItem } from "@/lib/types/interfaces";
 import { Category } from "@/lib/utils";
+
 interface CategorySidebarProps {
   categories: Category[];
   selectedCategoryId: string;
@@ -56,8 +56,8 @@ export function CategorySidebar({
           }}
           className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between ${
             selectedCategoryId === category.id
-              ? "bg-teal-500 text-white shadow-md"
-              : "text-foreground hover:bg-white/50"
+              ? "bg-primary text-primary-foreground shadow-md"
+              : "text-foreground hover:bg-muted"
           }`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
         >
@@ -87,15 +87,15 @@ export function CategorySidebar({
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex md:flex-col md:w-64 bg-linear-to-b from-teal-50 to-white border-r border-border min-h-screen p-4 sticky top-0">
-        <h2 className="text-sm font-semibold text-teal-700 flex items-center gap-2 mb-6">
-          <div className="w-1 h-4 bg-teal-500 rounded-full" /> Categories
+      <div className="hidden md:flex md:flex-col md:w-64 bg-gradient-to-b from-primary/10 to-card dark:from-primary/20 dark:to-card border-r border-border min-h-screen p-4 sticky top-0">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-6">
+          <div className="w-1 h-4 bg-primary rounded-full" /> Categories
         </h2>
         <div className="space-y-2">
           {categories.map((cat) => renderCategory(cat))}
@@ -104,19 +104,19 @@ export function CategorySidebar({
 
       {/* Mobile Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full w-64 bg-linear-to-b from-teal-50 to-white rounded-r-lg p-4 transition-transform duration-300 z-50 md:hidden overflow-y-auto ${
+        className={`fixed left-0 top-0 h-full w-72 bg-card border-r border-border shadow-xl p-4 transition-transform duration-300 z-50 md:hidden overflow-y-auto ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-teal-600 flex items-center gap-2">
-            <div className="w-1 h-4 bg-teal-500 rounded-full" /> Categories
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <div className="w-1 h-4 bg-primary rounded-full" /> Categories
           </h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-6 w-6"
+            className="h-9 w-9"
           >
             <X className="w-4 h-4" />
           </Button>

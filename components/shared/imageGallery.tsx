@@ -20,7 +20,7 @@ const GalleryComponent = ({
             <button
               key={img.id || idx}
               onClick={() => setSelectedImage(getImageUrl(img.url))}
-              className="relative overflow-hidden rounded border-2 border-transparent hover:border-teal-600 transition-all min-w-[100px] h-24"
+              className="relative overflow-hidden rounded border-2 border-transparent hover:border-primary transition-all min-w-[100px] h-24"
             >
               <Image
                 src={getImageUrl(img.url) || "/placeholder.svg"}

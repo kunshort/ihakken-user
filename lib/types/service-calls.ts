@@ -46,7 +46,15 @@ export interface EndCallResponse {
 
 export interface CallStatusResponse {
   call_session_id: string;
-  status: "ringing" | "connecting" | "connected" | "ended" | "failed";
+  status:
+    | "ringing"
+    | "connecting"
+    | "connected"
+    | "ended"
+    | "failed"
+    | "active"
+    | "ai_active"
+    | "staffunit_active";
   participants?: Array<{
     user_id: string;
     user_name: string;
@@ -106,6 +114,8 @@ export type CallStatus =
   | "idle"
   | "ringing"
   | "connecting"
+  | "ai_active"
+  | "staffunit_active"
   | "connected"
   | "ended"
   | "failed";

@@ -127,14 +127,14 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* DYNAMIC STICKY HEADER - Always visible */}
-      <div className="sticky top-0 z-20 bg-white shadow-sm">
+      <div className="sticky top-0 z-20 bg-card shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
-          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${
+          className={`relative bg-gradient-to-r from-primary to-primary/80 overflow-hidden transition-all duration-300 ease-in-out ${
             isScrolled ? "h-16" : "h-48 md:h-64"
           }`}
         >
-          <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
               <Link href={backLink}>
@@ -161,13 +161,13 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
         </div>
 
         {/* SEARCH BAR - Always visible */}
-        <div className="border-b border-border px-4 py-4">
+        <div className="border-b border-border bg-card px-4 py-4">
           <div className="max-w-6xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search accommodations..."
-                className="pl-10"
+                className="pl-10 bg-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 disabled={payloadLoading || (!serviceId && !payloadLoading)}

@@ -62,7 +62,19 @@ export function useServiceCall() {
           }
 
           switch (status.status) {
-            case "connected":
+            case "active":
+              setCallStatus("connected");
+              toast.success("Call connected!", {
+                description: "You can now speak with an AI Agent",
+              });
+              break;
+            case "ai_active":
+              setCallStatus("connected");
+              toast.success("Call connected!", {
+                description: "You can now speak with an AI Agent",
+              });
+              break;
+            case "staffunit_active":
               setCallStatus("connected");
               toast.success("Call connected!", {
                 description: "You can now speak with the service staff",

@@ -20,8 +20,8 @@ export default function EmptyContent({
   return (
     
       <div className="flex flex-col items-center justify-center h-full text-center gap-2 self-center">
-        <div className="font-semibold">{message}</div>
-        <div className="">{description}</div>
+        <div className="font-semibold text-foreground">{message}</div>
+        <div className="text-muted-foreground">{description}</div>
          
         {actionLabel && actionHref  && (
           <Link href={actionHref}>

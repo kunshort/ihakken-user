@@ -40,10 +40,10 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
     >
       <Card
         className={cn(
-          "overflow-hidden shadow-sm border-teal-200 hover:shadow-md transition-shadow py-0",
+          "overflow-hidden shadow-sm border-border hover:shadow-md transition-shadow py-0",
           className
         )}>
-        <div className="relative h-28 w-full overflow-hidden bg-linear-to-br from-teal-100 to-teal-50">
+        <div className="relative h-28 w-full overflow-hidden bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20">
           {item.imageUrl ? (
             <Image
               src={item.imageUrl}
@@ -53,7 +53,7 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+            <div className="w-full h-full flex items-center justify-center bg-muted">
               <div className="text-3xl opacity-40">🍽️</div>
             </div>
           )}
@@ -63,10 +63,10 @@ export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payl
           <h4 className="font-semibold text-foreground text-sm line-clamp-2 mb-1">{item.name}</h4>
           <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.shortDescription}</p>
           <div className="flex items-center justify-between text-sm">
-            <p className="font-bold text-[#004248]">
+            <p className="font-bold text-primary">
               {currencySymbol} {item.price.toFixed(2)}
             </p>
-            {prepTimeFormatted && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" />{prepTimeFormatted}</span>}
+            {prepTimeFormatted && <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{prepTimeFormatted}</span>}
           </div>
         </CardContent>
       </Card>

@@ -198,14 +198,14 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* DYNAMIC STICKY HEADER */}
-      <div className="sticky top-0 z-20 bg-white shadow-sm">
+      <div className="sticky top-0 z-20 bg-card shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
         <div
-          className={`relative bg-linear-to-r from-[#004248] to-[#006666] overflow-hidden transition-all duration-300 ease-in-out ${
+          className={`relative bg-gradient-to-r from-primary to-primary/80 overflow-hidden transition-all duration-300 ease-in-out ${
             isScrolled ? "h-16" : "h-48 md:h-64"
           }`}
         >
-          <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
               <Link
@@ -234,13 +234,13 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
         </div>
 
         {/* SEARCH BAR */}
-        <div className="border-b border-border px-4 py-4">
+        <div className="border-b border-border bg-card px-4 py-4">
           <div className="max-w-6xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search dishes..."
-                className="pl-10"
+                className="pl-10 bg-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -282,9 +282,9 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
               {/* DESKTOP SIDEBAR */}
               <div className="hidden md:block md:col-span-1">
                 {/* Set a fixed top value to prevent jumping during scroll */}
-                <div className="bg-linear-to-b from-[#004248] to-transparent rounded-lg p-4 sticky top-[140px]">
-                  <h2 className="text-sm font-semibold text-[#004248] mb-4 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-[#006666] rounded-full" />
+                <div className="bg-gradient-to-b from-primary/10 to-transparent dark:from-primary/20 rounded-lg p-4 sticky top-[140px]">
+                  <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
                     View Categories
                   </h2>
                   <div className="space-y-1">
@@ -294,8 +294,8 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                         onClick={() => handleSelectCategory(category.id)}
                         className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                           selectedCategoryId === category.id
-                            ? "bg-teal-500 text-white shadow-md"
-                            : "text-foreground hover:bg-white/50"
+                            ? "bg-primary text-primary-foreground shadow-md"
+                            : "text-foreground hover:bg-muted"
                         }`}
                       >
                         {category.name}
@@ -311,10 +311,10 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                 <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
                   <button
                     onClick={() => setIsSidebarOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#004248] border border-[#006666] hover:bg-[#006666] transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-colors"
                   >
-                    <Menu className="w-4 h-4 text-white" />
-                    <span className="text-sm font-medium text-white">
+                    <Menu className="w-4 h-4 text-primary-foreground" />
+                    <span className="text-sm font-medium text-primary-foreground">
                       View Categories
                     </span>
                   </button>

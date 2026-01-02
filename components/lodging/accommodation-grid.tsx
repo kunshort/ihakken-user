@@ -83,7 +83,7 @@ export function AccommodationGrid({
                     accommodation.amenities.slice(0, 3).map((amenity) => (
                       <div
                         key={amenity.id}
-                        className="flex items-center gap-1 bg-teal-50 text-[#004248] px-3 py-1 rounded text-xs font-medium mt-4"
+                        className="flex items-center gap-1 bg-primary/10 text-primary dark:bg-primary/20 px-3 py-1 rounded text-xs font-medium mt-4"
                       >
                         {amenityIcons[amenity.name] || null}
                         {amenity.name}
@@ -101,12 +101,12 @@ export function AccommodationGrid({
                     <p className="text-xs text-muted-foreground">
                       Price per night
                     </p>
-                    <p className="text-xl font-bold text-[#004248]">
+                    <p className="text-xl font-bold text-primary">
                       {accommodation.currency.code}
                       {price.toFixed(2)}
                     </p>
                   </div>
-                  <Button className="bg-[#004248] hover:bg-[#003737] text-white px-8 py-2">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2">
                     View Details
                   </Button>
                 </div>

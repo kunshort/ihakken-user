@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { useServiceCall } from "@/hooks/useServiceCall";
 import { useStaffUnits } from "@/hooks/useStaffUnits";
-import { Service } from "@/lib/types/service-calls";
+import { Service, ServiceCall } from "@/lib/types/service-calls";
 import { isApiError } from "@/lib/utils/apiError";
 import {
   AlertCircle,
@@ -404,31 +404,31 @@ export function CallServiceModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-white shadow-2xl rounded-2xl border border-gray-200 my-8">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-card shadow-2xl rounded-2xl border border-border">
         <DialogHeader className="shrink-0 p-4">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Phone className="w-6 h-6 text-teal-600" />
+            <DialogTitle className="flex items-center gap-2 text-xl text-foreground">
+              <Phone className="w-6 h-6 text-primary" />
               {activeCall ? "Staff Call" : "Call a Staff"}
               {activeCall && (
                 <Badge
                   variant="secondary"
-                  className={getStatusColor(activeCall.status)}
+                  className={getStatusColor(activeCall.status || "")}
                 >
-                  {activeCall.status.replace("-", " ")}
+                  {(activeCall.status || "").replace("-", " ")}
                 </Badge>
               )}
             </DialogTitle>
 
             {activeCall && callStatus === "connected" && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span className="font-mono">{formatTime(callDuration)}</span>
               </div>
             )}
           </div>
 
-          <div className="text-gray-600 text-sm mt-1">
+          <div className="text-muted-foreground text-sm mt-1">
             {activeCall
               ? `Connected to ${activeCall.serviceName} via secure video call`
               : "Select a staff unit to start a call"}
@@ -442,10 +442,10 @@ export function CallServiceModal({
                         shrink-0 border rounded-lg p-4 mx-6 mb-4
                         ${
                           getErrorSeverity(error || fetchError) === "high"
-                            ? "bg-red-50 border-red-200"
+                            ? "bg-destructive/10 border-destructive/30"
                             : getErrorSeverity(error || fetchError) === "medium"
-                            ? "bg-amber-50 border-amber-200"
-                            : "bg-gray-50 border-gray-200"
+                            ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700"
+                            : "bg-muted border-border"
                         }
                     `}
           >
@@ -564,13 +564,13 @@ export function CallServiceModal({
         {isLoading && !hasServices && (
           <div className="flex-1 flex flex-col items-center justify-center p-8">
             <div className="relative">
-              <Loader2 className="w-12 h-12 text-teal-600 animate-spin" />
-              <div className="absolute inset-0 rounded-full border-4 border-teal-100"></div>
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
             </div>
-            <p className="mt-4 text-gray-600 font-medium">
+            <p className="mt-4 text-foreground font-medium">
               Loading services...
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Fetching available services for this branch
             </p>
           </div>
@@ -586,25 +586,25 @@ export function CallServiceModal({
                   const isCallingService = selectedService === service.id;
                   const isAvailable = service.available;
 
-                  // ACTIVE SERVICE: Green theme
+                  // ACTIVE SERVICE: Primary theme
                   const activeStyle = {
-                    border: "border-green-500",
-                    background: "bg-green-50 hover:bg-green-100",
-                    iconBackground: "bg-green-100",
-                    iconColor: "text-green-600",
-                    titleColor: "text-green-700",
-                    descriptionColor: "text-gray-600",
-                    shadow: "hover:shadow-md hover:shadow-green-100",
+                    border: "border-primary",
+                    background: "bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20",
+                    iconBackground: "bg-primary/10 dark:bg-primary/20",
+                    iconColor: "text-primary",
+                    titleColor: "text-primary",
+                    descriptionColor: "text-muted-foreground",
+                    shadow: "hover:shadow-md hover:shadow-primary/10",
                   };
 
-                  // INACTIVE SERVICE: Gray theme
+                  // INACTIVE SERVICE: Muted theme
                   const inactiveStyle = {
-                    border: "border-gray-300",
-                    background: "bg-gray-50 hover:bg-gray-100",
-                    iconBackground: "bg-gray-100",
-                    iconColor: "text-gray-400",
-                    titleColor: "text-gray-500",
-                    descriptionColor: "text-gray-400",
+                    border: "border-border",
+                    background: "bg-muted/50 hover:bg-muted",
+                    iconBackground: "bg-muted",
+                    iconColor: "text-muted-foreground",
+                    titleColor: "text-muted-foreground",
+                    descriptionColor: "text-muted-foreground/70",
                     shadow: "hover:shadow-sm",
                   };
 
@@ -638,7 +638,7 @@ export function CallServiceModal({
                       <div
                         className={`p-3 rounded-full ${
                           isCallingService
-                            ? "bg-teal-100 animate-pulse"
+                            ? "bg-primary/20 animate-pulse"
                             : style.iconBackground
                         }`}
                       >
@@ -661,17 +661,17 @@ export function CallServiceModal({
                       {isCallingService && (
                         <div className="flex flex-col items-center gap-2 mt-1">
                           <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-teal-600 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
                             <div
-                              className="w-2 h-2 bg-teal-600 rounded-full animate-bounce"
+                              className="w-2 h-2 bg-primary rounded-full animate-bounce"
                               style={{ animationDelay: "0.1s" }}
                             ></div>
                             <div
-                              className="w-2 h-2 bg-teal-600 rounded-full animate-bounce"
+                              className="w-2 h-2 bg-primary rounded-full animate-bounce"
                               style={{ animationDelay: "0.2s" }}
                             ></div>
                           </div>
-                          <span className="text-xs text-teal-600 font-medium">
+                          <span className="text-xs text-primary font-medium">
                             Connecting...
                           </span>
                         </div>
@@ -688,7 +688,7 @@ export function CallServiceModal({
                       {/* Branch Service Badge */}
                       {service.branchServiceName && (
                         <div className="absolute top-2 right-2">
-                          <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                             {service.branchServiceName}
                           </span>
                         </div>
@@ -701,29 +701,29 @@ export function CallServiceModal({
               {/* Service Stats - Only show when there are services */}
               {formattedServices.length > 0 && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div className="bg-primary/10 dark:bg-primary/20 border border-primary/30 rounded-xl p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-green-700">
+                      <span className="text-sm font-medium text-primary">
                         Available
                       </span>
-                      <span className="text-xl font-bold text-green-600">
+                      <span className="text-xl font-bold text-primary">
                         {formattedServices.filter((s) => s.available).length}
                       </span>
                     </div>
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-primary/80 mt-1">
                       Ready for calls
                     </p>
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div className="bg-muted border border-border rounded-xl p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-foreground">
                         Total Services
                       </span>
-                      <span className="text-xl font-bold text-gray-600">
+                      <span className="text-xl font-bold text-muted-foreground">
                         {formattedServices.length}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       For this branch
                     </p>
                   </div>
@@ -732,32 +732,32 @@ export function CallServiceModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-gradient-to-r from-gray-50 to-teal-50 border border-gray-200">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-muted to-primary/10 dark:from-muted dark:to-primary/20 border border-border">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1">
-                    <h4 className="font-semibold text-lg flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-teal-600" />
+                    <h4 className="font-semibold text-lg flex items-center gap-2 text-foreground">
+                      <Phone className="w-4 h-4 text-primary" />
                       {activeCall.serviceName}
                     </h4>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>Call ID:</span>
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
-                        {activeCall.id.slice(0, 8)}...
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                        {activeCall.id?.slice(0, 8)}...
                       </code>
-                      <span className="text-gray-400">•</span>
+                      <span className="text-muted-foreground/50">•</span>
                       <span className="text-xs">
-                        {new Date(activeCall.createdAt).toLocaleTimeString()}
+                        {/* {new Date(activeCall.createdAt).toLocaleTimeString()} */}
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge
                       variant="secondary"
-                      className={getStatusColor(activeCall.status)}
+                      className={getStatusColor(activeCall.status || "")}
                     >
-                      {activeCall.status.replace("-", " ")}
+                      {(activeCall.status || "").replace("-", " ")}
                     </Badge>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       Room: {activeCall.roomName}
                     </span>
                   </div>
@@ -777,16 +777,16 @@ export function CallServiceModal({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 pt-4 border-t border-gray-200 px-6 pb-6">
+        <DialogFooter className="shrink-0 pt-4 border-t border-border px-6 pb-6">
           {!activeCall ? (
             <div className="w-full flex justify-end">
               {/* Right side: Branch info only */}
               <div className="text-right">
-                <div className="text-sm text-gray-600 font-medium">
+                <div className="text-sm text-foreground font-medium">
                   Ready to connect
                 </div>
                 {branchServiceId && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     Branch:{" "}
                     {formattedServices[0]?.branchServiceName || "Unknown"}
                   </div>
@@ -795,13 +795,13 @@ export function CallServiceModal({
             </div>
           ) : (
             <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Shield className="w-3 h-3 text-green-500" />
                   <span>Secure • End-to-End Encrypted</span>
                 </div>
                 {activeCall.serverUrl && (
-                  <div className="mt-1 text-gray-400">
+                  <div className="mt-1 text-muted-foreground/70">
                     Server: {new URL(activeCall.serverUrl).hostname}
                   </div>
                 )}
@@ -812,7 +812,7 @@ export function CallServiceModal({
                     variant="outline"
                     onClick={handleRetry}
                     disabled={retrying}
-                    className="border-teal-300 text-teal-700 hover:bg-teal-50"
+                    className="border-primary/50 text-primary hover:bg-primary/10"
                   >
                     {retrying ? "Retrying..." : "Retry Call"}
                   </Button>
@@ -820,7 +820,7 @@ export function CallServiceModal({
                 <Button
                   variant="destructive"
                   onClick={handleClose}
-                  className="bg-red-600 hover:bg-red-700 text-white px-6"
+                  className="px-6"
                 >
                   End Call
                 </Button>

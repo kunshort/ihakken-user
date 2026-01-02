@@ -23,11 +23,11 @@ function ServicesPage() {
   }, [searchParams]);
 
   return (
-    <div>
+    <div className="min-h-screen bg-background flex items-center justify-center">
       {branchId ? (
-        <p>Branch ID: {branchId}</p>
+        <p className="text-foreground">Branch ID: {branchId}</p>
       ) : (
-        <p className="text-red-600 text-20 mr-12">Invalid access link.</p>
+        <p className="text-destructive text-lg">Invalid access link.</p>
       )}
     </div>
   );
@@ -35,7 +35,7 @@ function ServicesPage() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>}>
       <ServicesPage />
     </Suspense>
   );

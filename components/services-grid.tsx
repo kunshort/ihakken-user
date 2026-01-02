@@ -39,7 +39,7 @@ export function ServicesGrid({
       {services.map((service) => {
         const cardContent = (
           <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer h-full">
-            <div className="relative h-48 overflow-hidden bg-linear-to-br from-teal-500 to-teal-700">
+            <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary to-primary/80">
               {service.image ? (
                 <img
                   src={
@@ -58,15 +58,15 @@ export function ServicesGrid({
                 </div>
               )}
 
-              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                <span className="text-xs font-semibold text-teal-700 capitalize">
+              <div className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-xs font-semibold text-primary capitalize">
                   {service.service_type || "Service"}
                 </span>
               </div>
             </div>
 
             <CardContent className="p-6 pt-0">
-              <h3 className="font-bold text-xl text-foreground mb-2 group-hover:text-teal-600 transition-colors">
+              <h3 className="font-bold text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
                 {service.name}
               </h3>
               <p className="text-sm text-muted-foreground line-clamp-2">
@@ -76,14 +76,14 @@ export function ServicesGrid({
               {service.available ? (
                 <div className="mt-4 flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-600 font-medium">
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">
                     Available
                   </span>
                 </div>
               ) : (
                 <div className="mt-4 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  <span className="text-xs text-gray-500 font-medium">
+                  <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                  <span className="text-xs text-muted-foreground font-medium">
                     Coming Soon
                   </span>
                 </div>

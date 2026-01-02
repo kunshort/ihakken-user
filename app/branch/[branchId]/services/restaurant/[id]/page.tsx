@@ -258,7 +258,7 @@ export default function MenuItemDetailsPage() {
                 priority
               />
             ) : (
-              <div className="w-full h-full bg-linear-to-br from-teal-100 to-teal-50 flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/30 dark:to-primary/20 flex items-center justify-center">
                 <span className="text-8xl opacity-20">🍽️</span>
               </div>
             )}
@@ -268,18 +268,18 @@ export default function MenuItemDetailsPage() {
               {menuItem.shortDescription}
             </p>
 
-            <div className="flex gap-4 justify-between  text-3xl font-bold text-[#004248] mt-2">
+            <div className="flex gap-4 justify-between text-3xl font-bold text-primary mt-2">
               {currencySymbol}
               {price}
             </div>
           </div>
 
           {/* Main Item Quantity Selector */}
-          <Card className="bg-teal-50 px-4">
+          <Card className="bg-primary/10 dark:bg-primary/20 px-4">
             <CardContent className="py-2 px-0">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">Quantity</span>
-                <div className="flex items-center gap-3 bg-white border rounded-lg p-2">
+                <div className="flex items-center gap-3 bg-card border rounded-lg p-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -385,13 +385,13 @@ export default function MenuItemDetailsPage() {
                     )}
                     <div className="flex-1">
                       <p className="font-medium text-sm">{addon.addonName}</p>
-                      <p className="text-[#004248] font-semibold text-sm">
+                      <p className="text-primary font-semibold text-sm">
                         {currencySymbol}
                         {parseFloat(addon.extraPrice).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-white border rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-card border rounded-lg p-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -469,13 +469,13 @@ export default function MenuItemDetailsPage() {
                       <p className="font-medium text-sm">
                         {topping.toppinName}
                       </p>
-                      <p className="text-[#004248] font-semibold text-sm">
+                      <p className="text-primary font-semibold text-sm">
                         {currencySymbol}
                         {parseFloat(topping.extraPrice).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-white border rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-card border rounded-lg p-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -553,13 +553,13 @@ export default function MenuItemDetailsPage() {
                       <p className="font-medium text-sm">
                         {complement.complementName}
                       </p>
-                      <p className="text-[#004248] font-semibold text-sm">
+                      <p className="text-primary font-semibold text-sm">
                         {currencySymbol}
                         {parseFloat(complement.extraPrice).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-white border rounded-lg p-2">
+                  <div className="flex items-center gap-2 bg-card border rounded-lg p-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -599,41 +599,39 @@ export default function MenuItemDetailsPage() {
         )}
 
         {/* Order Summary */}
-        <Card className="bg-teal-50 border-teal-200">
+        <Card className="bg-primary/10 dark:bg-primary/20 border-primary/30">
           <CardContent className="pt-6 space-y-3">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Main Item:</span>
-                <span className="font-medium">{mainQuantity}</span>
+                <span className="font-medium text-foreground">{mainQuantity}</span>
               </div>
               {totalAddOns > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Add-ons:</span>
-                  <span className="font-medium">{totalAddOns}</span>
+                  <span className="font-medium text-foreground">{totalAddOns}</span>
                 </div>
               )}
               {totalToppings > 0 && (
                 <div className="flex justify-between ">
                   <span className="text-muted-foreground">Toppings:</span>
-                  <span className="font-medium">{totalToppings}</span>
+                  <span className="font-medium text-foreground">{totalToppings}</span>
                 </div>
               )}
               {totalComplements > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Complements:</span>
-                  <span className="font-medium">{totalComplements}</span>
+                  <span className="font-medium text-foreground">{totalComplements}</span>
                 </div>
               )}
-              <div className="border-t border-teal-200 pt-2 flex justify-between font-bold">
-                <span>Total Items:</span>
-                <span className="text-[#004248]">{totalItems}</span>
+              <div className="border-t border-primary/30 pt-2 flex justify-between font-bold">
+                <span className="text-foreground">Total Items:</span>
+                <span className="text-primary">{totalItems}</span>
               </div>
             </div>
-            <div className="border-t border-teal-200 pt-3 flex justify-between items-center">
-              <span className="font-semibold">Total Price:</span>
-              <span className="text-2xl font-bold text-[#004248] flex justify-between">
-                {currencySymbol}
-                {totalPrice.toLocaleString()}
+            <div className="border-t border-primary/30 pt-3 flex justify-between items-center">
+              <span className="font-semibold text-foreground">Total Price:</span>
+              <span className="text-2xl font-bold text-primary">
                 {currencySymbol}
                 {totalPrice.toFixed(2)}
               </span>

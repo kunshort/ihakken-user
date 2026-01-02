@@ -22,9 +22,9 @@ export default function ImageDisplay({
   if (!images || images.length === 0) {
     return (
       <div
-        className={`flex items-center justify-center ${height} bg-gray-100  ${className}`}
+        className={`flex items-center justify-center ${height} bg-muted ${className}`}
       >
-        <p className="text-gray-400 text-sm">No images available</p>
+        <p className="text-muted-foreground text-sm">No images available</p>
       </div>
     );
   }
@@ -67,24 +67,24 @@ export default function ImageDisplay({
           <>
             <button
               onClick={goToPrevious}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white w-6 h-6 rounded flex items-center justify-center"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm"
               aria-label="Previous image"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={goToNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white w-6 h-6 rounded flex items-center justify-center"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm"
               aria-label="Next image"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-5 h-5" />
             </button>
           </>
         )}
 
         {/* Image Counter */}
         {images.length > 1 && (
-          <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded mb-10">
+          <div className="absolute top-2 right-2 z-10 bg-black/60 text-white text-xs px-2 py-1 rounded">
             {currentIndex + 1} / {images.length}
           </div>
         )}
@@ -100,7 +100,7 @@ export default function ImageDisplay({
               className={`h-2 rounded-full transition-all ${
                 index === currentIndex
                   ? "bg-primary w-6"
-                  : "bg-gray-300 w-2 hover:bg-gray-400"
+                  : "bg-muted-foreground/30 w-2 hover:bg-muted-foreground/50"
               }`}
               aria-label={`Go to image ${index + 1}`}
             />

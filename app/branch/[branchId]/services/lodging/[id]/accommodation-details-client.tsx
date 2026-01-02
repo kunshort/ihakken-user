@@ -110,6 +110,8 @@ export default function AccommodationDetailsClient({
               className="w-full"
               baseUrl={BASE_API_URL}
             />
+            {/* Gradient overlay for text visibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
           </div>
         ) : (
           <>
@@ -120,7 +122,7 @@ export default function AccommodationDetailsClient({
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-linear-to-b from-black/30 to-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
           </>
         )}
 
@@ -128,20 +130,20 @@ export default function AccommodationDetailsClient({
           <Button
             variant="ghost"
             size="icon"
-            className="bg-white/60 hover:bg-white/30 text-white"
+            className="bg-black/50 hover:bg-black/70 text-white shadow-lg backdrop-blur-sm"
           >
             <ChevronLeft className="w-6 h-6" />
           </Button>
         </Link>
 
         <div className="absolute bottom-4 left-4 right-4 text-white z-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-balance">
+          <h1 className="text-3xl md:text-4xl font-bold text-balance drop-shadow-lg">
             {isLoading
               ? "Loading..."
               : accommodation?.typeName || "Accommodation"}
           </h1>
           {accommodation?.description && (
-            <p className="text-sm md:text-base text-white/90 mt-1">
+            <p className="text-sm md:text-base text-white/90 mt-1 drop-shadow-md">
               {accommodation.description}
             </p>
           )}
@@ -170,12 +172,12 @@ export default function AccommodationDetailsClient({
                 <p className="text-sm text-muted-foreground mb-1">
                   Price per night
                 </p>
-                <p className="text-2xl font-bold text-[#004248]">
+                <p className="text-2xl font-bold text-primary">
                   {accommodation.currency.code}
                   {parseFloat(accommodation.pricePerNight || "0").toFixed(2)}
                 </p>
               </div>
-              <Button className="bg-[#004248] hover:bg-[#003737] text-white px-8 py-2 mt-4">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 mt-4">
                 Reserve Now
               </Button>
             </div>
@@ -227,7 +229,7 @@ export default function AccommodationDetailsClient({
                   accommodation.amenities.map((amenity) => (
                     <div
                       key={amenity.id}
-                      className="flex items-center gap-2 bg-[#E0F2F1] text-[#004248] px-2 py-1 rounded-lg border border-[#B2DFDB]"
+                      className="flex items-center gap-2 bg-primary/10 text-primary dark:bg-primary/20 px-2 py-1 rounded-lg border border-primary/30"
                     >
                       {amenity.icon && <IconFinder name={amenity.icon} />}
                       <span className="text-sm">{amenity.name}</span>

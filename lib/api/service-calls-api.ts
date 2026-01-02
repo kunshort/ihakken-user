@@ -139,8 +139,8 @@ class ServiceCallsAPI {
         throw new Error(`Failed to get call status: ${response.status}`);
       }
 
-      const data: CallStatusResponse = await response.json();
-      return data;
+      const data: any = await response.json();
+      return data.data;
     } catch (error) {
       console.error("[ServiceCallsAPI] Get call status error:", error);
       throw error;
