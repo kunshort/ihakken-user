@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" rx="6" fill="#0D9488"/>
+  <g style="transform: scale(90%); transform-origin: center">
+    <!-- "i" letter -->
+    <rect x="5" y="11" width="4" height="14" rx="1" fill="white"/>
+    <circle cx="7" cy="7" r="2.5" fill="white"/>
+
+    <!-- "h" letter -->
+    <path d="M13 6 L13 25 L17 25 L17 17 C17 14 19 12.5 22 12.5 C25 12.5 27 14.5 27 18 L27 25 L31 25 L31 17 C31 12 27 9 23 9 C20 9 17 11 17 11 L17 6 L13 6 Z" fill="white"/>
+  </g>
+</svg>

@@ -67,16 +67,13 @@ export default function ServicePage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-lg">
+                <div className="w-10 h-10 rounded-xl bg-white shadow-lg flex items-center justify-center overflow-hidden">
                   <img
-                    src="/ihakkenlogo.jpg"
-                    alt="ihakken Logo"
-                    className="w-10 h-10 object-cover"
+                    src="/ih-logo.svg"
+                    alt="ih Logo"
+                    className="w-10 h-10 object-contain"
                   />
                 </div>
-                <span className="text-xl font-semibold text-white">
-                  ihakken
-                </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg">
                 <ThemeToggle />
@@ -189,11 +186,11 @@ export default function ServicePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <div className="w-8 h-8 rounded-lg overflow-hidden bg-card">
                 <img
-                  src="/ihakkenlogo.jpg"
-                  alt="ihakken Logo"
-                  className="w-8 h-8 object-cover"
+                  src="/ih-logo.svg"
+                  alt="ih Logo"
+                  className="w-8 h-8 object-contain"
                 />
               </div>
               <span className="text-sm text-muted-foreground">
