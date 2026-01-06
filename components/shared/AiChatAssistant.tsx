@@ -11,6 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
 import { bubbleStyles, BubbleStyle } from "./ai-chat-bubble-styles";
@@ -181,6 +188,8 @@ export function AiChatAssistant({
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [shouldFetchSession, setShouldFetchSession] = useState(false);
   const [connectingDots, setConnectingDots] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<AIWebSocketClient | null>(null);
 
@@ -320,6 +329,14 @@ export function AiChatAssistant({
                 }
                 return prevMessages;
               });
+              break;
+
+            case "error":
+              console.error("[WS] Error received:", msg.error);
+              setIsThinking(false);
+              const errorMsg = msg.error || "Something went wrong. Please try again later.";
+              setErrorMessage(errorMsg);
+              setShowErrorDialog(true);
               break;
 
             default:
@@ -485,6 +502,25 @@ export function AiChatAssistant({
 
   return (
     <>
+      {/* Error Dialog */}
+      <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <AlertDialogContent className="w-[90vw] max-w-xs p-4">
+          <AlertDialogTitle className="text-base">Something Went Wrong</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
+            An error occurred while communicating with the AI assistant. Please try again later.
+          </AlertDialogDescription>
+          <AlertDialogAction
+            onClick={() => {
+              setShowErrorDialog(false);
+              setErrorMessage(null);
+            }}
+            className="w-full"
+          >
+            OK
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="fixed bottom-5 right-4 z-40">
         <Button
           onClick={toggleChat}
