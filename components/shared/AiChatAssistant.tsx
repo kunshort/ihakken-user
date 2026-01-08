@@ -40,7 +40,7 @@ function getSessionStorageKey(serviceType: string): string {
 
 interface StoredSessionData {
   sessionId: string;
-  proxyToken: string;
+  serviceId: string;
 }
 
 function getStoredSessionData(serviceType: string): StoredSessionData | null {
@@ -59,10 +59,10 @@ function getStoredSessionData(serviceType: string): StoredSessionData | null {
 function storeSessionData(
   serviceType: string,
   sessionId: string,
-  proxyToken: string
+  serviceId: string
 ): void {
   if (typeof window === "undefined") return;
-  const data: StoredSessionData = { sessionId, proxyToken };
+  const data: StoredSessionData = { sessionId, serviceId };
   localStorage.setItem(getSessionStorageKey(serviceType), JSON.stringify(data));
 }
 
@@ -148,14 +148,12 @@ interface ChatMessage {
 interface AiChatAssistantProps {
   serviceId: string;
   branchId: string;
-  payload: string;
   serviceType: ServiceType;
 }
 
 export function AiChatAssistant({
   serviceId,
   branchId,
-  payload,
   serviceType,
 }: AiChatAssistantProps) {
   const activeConfig = aiServiceConfigs[serviceType];
@@ -356,18 +354,18 @@ export function AiChatAssistant({
     }
   }, [serviceType, activeConfig.specialResponse]);
 
-  // Clear session if token changed
+  // Clear session if service changed
   useEffect(() => {
     const storedData = getStoredSessionData(serviceType);
-    if (storedData && storedData.proxyToken !== payload) {
-      console.log("[Session] Token changed, clearing old session");
+    if (storedData && storedData.serviceId !== serviceId) {
+      console.log("[Session] Service changed, clearing old session");
       clearStoredSession(serviceType);
       setSessionId(null);
       setMessages([
         { text: greetingMessage, sender: "ai", isStreaming: false },
       ]);
     }
-  }, [payload, serviceType, greetingMessage]);
+  }, [serviceId, serviceType, greetingMessage]);
 
   // Prevent scrolling
   useEffect(() => {
@@ -434,7 +432,7 @@ export function AiChatAssistant({
     setIsLoadingSession(true);
     try {
       const storedData = getStoredSessionData(serviceType);
-      if (storedData && storedData.proxyToken === payload) {
+      if (storedData && storedData.serviceId === serviceId) {
         setSessionId(storedData.sessionId);
         setShouldFetchSession(true);
         connectWebSocket(storedData.sessionId);
@@ -444,7 +442,7 @@ export function AiChatAssistant({
           resource_id: serviceId,
           medium: "branch_service",
         }).unwrap();
-        storeSessionData(serviceType, newSession.id, payload);
+        storeSessionData(serviceType, newSession.id, serviceId);
         setSessionId(newSession.id);
         setMessages([
           { text: greetingMessage, sender: "ai", isStreaming: false },
@@ -611,7 +609,6 @@ export function AiChatAssistant({
                                     key={item.id}
                                     item={item as AIChatMenuItem}
                                     branchId={branchId}
-                                    payload={payload}
                                     className="w-[180px] flex-shrink-0"
                                   />
                                 ))}
@@ -623,7 +620,6 @@ export function AiChatAssistant({
                                     key={item.id}
                                     room={item as AIChatRoomItem}
                                     branchId={branchId}
-                                    payload={payload}
                                     className="w-[180px] flex-shrink-0"
                                   />
                                 ))}

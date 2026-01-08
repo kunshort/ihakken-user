@@ -1,34 +1,21 @@
 "use client";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { usePayload } from "@/hooks/usePayload";
 
 function ServicesPage() {
-  const searchParams = useSearchParams();
-  const [branchId, setBranchId] = useState(null);
+  const router = useRouter();
+  const { payload, isLoading } = usePayload();
 
   useEffect(() => {
-    const payload = searchParams.get("payload");
-    if (payload) {
-      try {
-        const decoded = JSON.parse(
-          Buffer.from(payload, "base64url").toString("utf-8")
-        );
-
-        console.log("Successfully decoded:", decoded);
-        setBranchId(decoded.branch?.id);
-      } catch (error) {
-        console.error("[v0] Failed to parse payload:", error);
-      }
+    if (!isLoading && payload?.branch?.id) {
+      router.push(`/branch/${payload.branch.id}/services/lodging`);
     }
-  }, [searchParams]);
+  }, [payload, isLoading, router]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      {branchId ? (
-        <p className="text-foreground">Branch ID: {branchId}</p>
-      ) : (
-        <p className="text-destructive text-lg">Invalid access link.</p>
-      )}
+      <p className="text-muted-foreground">Loading...</p>
     </div>
   );
 }

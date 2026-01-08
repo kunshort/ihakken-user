@@ -5,15 +5,14 @@ import ErrorComponent from "@/components/shared/errorComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStaffUnits } from "@/hooks/useStaffUnits";
+import { usePayload } from "@/hooks/usePayload";
 import {
-  useDecodePayloadQuery,
   useGetAccommodationsQuery,
 } from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { ChevronLeft, Phone, Search } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import EmptyContent from "../shared/noContent";
 import { AccommodationGrid } from "./accommodation-grid";
@@ -28,11 +27,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [callModalOpen, setCallModalOpen] = useState(false);
 
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   useEffect(() => {
     if (!decoded) return;
@@ -120,9 +115,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   // Check if search returned no results
   const hasNoSearchResults = searchQuery && filteredAccommodations.length === 0;
 
-  const backLink = `/branch/services/${serviceId}${
-    payload ? `?payload=${payload}` : ""
-  }`;
+  const backLink = `/branch/services/${serviceId}`;
 
   return (
     <div className="min-h-screen bg-background">

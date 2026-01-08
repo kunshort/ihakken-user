@@ -16,7 +16,6 @@ interface MenuItemCardProps {
     prepTime?: number;
   };
   branchId: string;
-  payload: string;
   className?: string; 
 }
 
@@ -28,15 +27,13 @@ const formatPrepTime = (minutes: number | undefined | null) => {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
-export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, payload, className }) => {
+export const MenuItemCard: React.FC<MenuItemCardProps> = ({ item, branchId, className }) => {
   const currencySymbol = item.currencyCode;
   const prepTimeFormatted = formatPrepTime(item.prepTime);
 
   return (
     <Link
-      href={`/branch/${branchId}/services/restaurant/${item.id}${
-        payload ? `?payload=${payload}` : ""
-      }`}
+      href={`/branch/${branchId}/services/restaurant/${item.id}`}
     >
       <Card
         className={cn(

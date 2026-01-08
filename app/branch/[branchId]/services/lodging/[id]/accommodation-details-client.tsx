@@ -16,8 +16,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 import { Accommodation } from "@/lib/types/interfaces";
@@ -47,7 +46,6 @@ interface AccommodationDetailsClientProps {
   isLoading: boolean;
   error: any;
   serviceId?: string;
-  payload: string;
   handleRetry: () => void;
 }
 
@@ -63,7 +61,6 @@ export default function AccommodationDetailsClient({
   isLoading,
   error,
   serviceId,
-  payload,
   handleRetry,
 }: AccommodationDetailsClientProps) {
   const [selectedImage, setSelectedImage] = useState(
@@ -72,15 +69,10 @@ export default function AccommodationDetailsClient({
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  const searchParams = useSearchParams();
-  const payloadParam = searchParams.get("payload") || payload;
-  const { data: decodedPayload } = useDecodePayloadQuery(payloadParam);
-
+  const { payload: decodedPayload } = usePayload();
   const branchIdFromPayload = decodedPayload?.branch?.id || "";
 
-  const backHref = `/branch/${branchIdFromPayload}/services/lodging${
-    payloadParam ? `?payload=${payloadParam}` : ""
-  }`;
+  const backHref = `/branch/${branchIdFromPayload}/services/lodging`;
 
   const headerImages =
     accommodation?.mainImage && accommodation.mainImage.length > 0

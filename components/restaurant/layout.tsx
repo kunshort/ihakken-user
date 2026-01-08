@@ -13,8 +13,7 @@ import {
   useGetMenuItemsQuery,
   useGetMenuCategoriesQuery,
 } from "@/lib/api/restaurant";
-import { useSearchParams } from "next/navigation";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { MenuItem } from "@/lib/types/interfaces";
 import { buildCategoryHierarchy } from "@/lib/utils";
@@ -31,11 +30,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const menuGridRef = useRef<HTMLDivElement>(null);
 
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   useEffect(() => {
     if (!decoded) return;
@@ -209,9 +204,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
               <Link
-                href={`/branch/services/${serviceId}${
-                  payload ? `?payload=${payload}` : ""
-                }`}
+                href={`/branch/services/${serviceId}`}
               >
                 <Button
                   variant="ghost"

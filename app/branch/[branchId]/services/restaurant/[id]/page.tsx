@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Plus, Minus } from "lucide-react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useGetMenuItemsQuery } from "@/lib/api/restaurant";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import Image from "next/image";
 import { MenuItem } from "@/lib/types/interfaces";
@@ -25,8 +25,7 @@ import { AnalyticsTracker } from "@/components/shared/analytics";
 
 export default function MenuItemDetailsPage() {
   const params = useParams<{ id: string; branchId: string }>();
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   const { id, branchId } = params;
   const itemId = id as string;
@@ -42,9 +41,6 @@ export default function MenuItemDetailsPage() {
   const [selectedComplements, setSelectedComplements] = useState<
     Record<string, number>
   >({});
-
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
 
   const serviceId = decoded?.services.find(
     (s: any) => s.serviceType?.toLowerCase() === "restaurant"
@@ -110,9 +106,7 @@ export default function MenuItemDetailsPage() {
         <div className="sticky top-0 z-10 bg-background border-b">
           <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
             <Link
-              href={`/branch/${branchId}/services/restaurant${
-                payload ? `?payload=${payload}` : ""
-              }`}
+              href={`/branch/${branchId}/services/restaurant`}
             >
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
@@ -139,9 +133,7 @@ export default function MenuItemDetailsPage() {
         <div className="sticky top-0 z-10 bg-background border-b">
           <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
             <Link
-              href={`/branch/${branchId}/services/restaurant${
-                payload ? `?payload=${payload}` : ""
-              }`}
+              href={`/branch/${branchId}/services/restaurant`}
             >
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
@@ -156,9 +148,7 @@ export default function MenuItemDetailsPage() {
               message="Item Not Found"
               description="The menu item you're looking for doesn't exist or has been removed."
               actionLabel="Back to Menu"
-              actionHref={`/branch/${branchId}/services/restaurant${
-                payload ? `?payload=${payload}` : ""
-              }`}
+              actionHref={`/branch/${branchId}/services/restaurant`}
             />
           </div>
         </div>
@@ -231,9 +221,7 @@ export default function MenuItemDetailsPage() {
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="max-w-2xl mx-auto flex items-center gap-3 p-4">
           <Link
-            href={`/branch/${branchId}/services/restaurant${
-              payload ? `?payload=${payload}` : ""
-            }`}
+            href={`/branch/${branchId}/services/restaurant`}
           >
             <Button variant="ghost" size="icon">
               <ArrowLeft className="w-5 h-5" />
