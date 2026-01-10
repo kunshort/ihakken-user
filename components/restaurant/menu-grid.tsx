@@ -1,7 +1,6 @@
 // menu-grid.tsx updates
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { MenuItem } from "@/lib/types/interfaces";
 import { Category } from "@/lib/utils";
 import { BASE_API_URL } from "@/lib/api/base";
@@ -14,8 +13,6 @@ interface MenuGridProps {
 }
 
 export function MenuGrid({ itemsByCategory, categories, branchId }: MenuGridProps) {
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
 
   // Get category name by ID
   const getCategoryName = (categoryId: string): string => {
@@ -109,7 +106,6 @@ export function MenuGrid({ itemsByCategory, categories, branchId }: MenuGridProp
                     key={assignment.id}
                     item={cardItem}
                     branchId={branchId}
-                    payload={payload}
                     className="w-full h-full" 
                   />
                 );

@@ -11,6 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MenuItemCard } from "@/components/restaurant/MenuItemCard";
 import { RoomCard } from "./RoomCard";
 import { bubbleStyles, BubbleStyle } from "./ai-chat-bubble-styles";
@@ -33,7 +40,7 @@ function getSessionStorageKey(serviceType: string): string {
 
 interface StoredSessionData {
   sessionId: string;
-  proxyToken: string;
+  serviceId: string;
 }
 
 function getStoredSessionData(serviceType: string): StoredSessionData | null {
@@ -52,10 +59,10 @@ function getStoredSessionData(serviceType: string): StoredSessionData | null {
 function storeSessionData(
   serviceType: string,
   sessionId: string,
-  proxyToken: string
+  serviceId: string
 ): void {
   if (typeof window === "undefined") return;
-  const data: StoredSessionData = { sessionId, proxyToken };
+  const data: StoredSessionData = { sessionId, serviceId };
   localStorage.setItem(getSessionStorageKey(serviceType), JSON.stringify(data));
 }
 
@@ -141,14 +148,12 @@ interface ChatMessage {
 interface AiChatAssistantProps {
   serviceId: string;
   branchId: string;
-  payload: string;
   serviceType: ServiceType;
 }
 
 export function AiChatAssistant({
   serviceId,
   branchId,
-  payload,
   serviceType,
 }: AiChatAssistantProps) {
   const activeConfig = aiServiceConfigs[serviceType];
@@ -181,6 +186,8 @@ export function AiChatAssistant({
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [shouldFetchSession, setShouldFetchSession] = useState(false);
   const [connectingDots, setConnectingDots] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<AIWebSocketClient | null>(null);
 
@@ -322,6 +329,14 @@ export function AiChatAssistant({
               });
               break;
 
+            case "error":
+              console.error("[WS] Error received:", msg.error);
+              setIsThinking(false);
+              const errorMsg = msg.error || "Something went wrong. Please try again later.";
+              setErrorMessage(errorMsg);
+              setShowErrorDialog(true);
+              break;
+
             default:
               console.warn("[WS] Unhandled message type:", msg.type);
           }
@@ -339,18 +354,18 @@ export function AiChatAssistant({
     }
   }, [serviceType, activeConfig.specialResponse]);
 
-  // Clear session if token changed
+  // Clear session if service changed
   useEffect(() => {
     const storedData = getStoredSessionData(serviceType);
-    if (storedData && storedData.proxyToken !== payload) {
-      console.log("[Session] Token changed, clearing old session");
+    if (storedData && storedData.serviceId !== serviceId) {
+      console.log("[Session] Service changed, clearing old session");
       clearStoredSession(serviceType);
       setSessionId(null);
       setMessages([
         { text: greetingMessage, sender: "ai", isStreaming: false },
       ]);
     }
-  }, [payload, serviceType, greetingMessage]);
+  }, [serviceId, serviceType, greetingMessage]);
 
   // Prevent scrolling
   useEffect(() => {
@@ -417,7 +432,7 @@ export function AiChatAssistant({
     setIsLoadingSession(true);
     try {
       const storedData = getStoredSessionData(serviceType);
-      if (storedData && storedData.proxyToken === payload) {
+      if (storedData && storedData.serviceId === serviceId) {
         setSessionId(storedData.sessionId);
         setShouldFetchSession(true);
         connectWebSocket(storedData.sessionId);
@@ -427,7 +442,7 @@ export function AiChatAssistant({
           resource_id: serviceId,
           medium: "branch_service",
         }).unwrap();
-        storeSessionData(serviceType, newSession.id, payload);
+        storeSessionData(serviceType, newSession.id, serviceId);
         setSessionId(newSession.id);
         setMessages([
           { text: greetingMessage, sender: "ai", isStreaming: false },
@@ -485,6 +500,25 @@ export function AiChatAssistant({
 
   return (
     <>
+      {/* Error Dialog */}
+      <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <AlertDialogContent className="w-[90vw] max-w-xs p-4">
+          <AlertDialogTitle className="text-base">Something Went Wrong</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
+            An error occurred while communicating with the AI assistant. Please try again later.
+          </AlertDialogDescription>
+          <AlertDialogAction
+            onClick={() => {
+              setShowErrorDialog(false);
+              setErrorMessage(null);
+            }}
+            className="w-full"
+          >
+            OK
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="fixed bottom-5 right-4 z-40">
         <Button
           onClick={toggleChat}
@@ -575,7 +609,6 @@ export function AiChatAssistant({
                                     key={item.id}
                                     item={item as AIChatMenuItem}
                                     branchId={branchId}
-                                    payload={payload}
                                     className="w-[180px] flex-shrink-0"
                                   />
                                 ))}
@@ -587,7 +620,6 @@ export function AiChatAssistant({
                                     key={item.id}
                                     room={item as AIChatRoomItem}
                                     branchId={branchId}
-                                    payload={payload}
                                     className="w-[180px] flex-shrink-0"
                                   />
                                 ))}

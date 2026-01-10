@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Service } from "@/lib/types/interfaces";
 import { BASE_API_URL } from "@/lib/api/base";
 
@@ -17,9 +16,6 @@ export function ServicesGrid({
   branchId,
   hideLinks = false,
 }: ServicesGridProps) {
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
   const getServiceRoute = (service: Service) => {
     const serviceType = service.service_type?.toLowerCase();
 
@@ -31,7 +27,7 @@ export function ServicesGrid({
       serviceType && routeMap[serviceType]
         ? routeMap[serviceType]
         : `/branch/services/${service.id}`;
-    return payload ? `${route}?payload=${payload}` : route;
+    return route;
   };
 
   return (

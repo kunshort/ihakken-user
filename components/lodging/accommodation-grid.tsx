@@ -2,12 +2,10 @@
 
 import type React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wifi, Wind, Coffee } from "lucide-react";
 import { Accommodation } from "@/lib/types/interfaces";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
 import Image from "next/image";
 import { BASE_API_URL } from "@/lib/api/base";
 
@@ -28,9 +26,6 @@ export function AccommodationGrid({
   accommodations,
   branchId,
 }: AccommodationGridProps) {
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
   if (!accommodations || accommodations.length === 0) {
     return (
       <div className="text-center py-12">
@@ -47,9 +42,7 @@ export function AccommodationGrid({
           ? image
           : `${BASE_API_URL}${image}`;
         const price = parseFloat(accommodation.pricePerNight || "0");
-        const href = `/branch/${branchId}/services/lodging/${accommodation.id}${
-          payload ? `?payload=${payload}` : ""
-        }`;
+        const href = `/branch/${branchId}/services/lodging/${accommodation.id}`;
 
         return (
           <Link href={href} key={accommodation.id} legacyBehavior={false}>

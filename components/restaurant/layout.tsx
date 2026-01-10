@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Filter, ChevronLeft, Menu } from "lucide-react";
+import { Search, Filter, ChevronLeft, Menu, Bell } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,15 @@ import { MenuGrid } from "./menu-grid";
 import {
   useGetMenuItemsQuery,
   useGetMenuCategoriesQuery,
+  useCallWaiterMutation,
 } from "@/lib/api/restaurant";
-import { useSearchParams } from "next/navigation";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { MenuItem } from "@/lib/types/interfaces";
 import { buildCategoryHierarchy } from "@/lib/utils";
 import ErrorComponent from "../shared/errorComponent";
+import { BASE_API_URL } from "@/lib/api/base";
+import { toast, Toaster } from "sonner";
 
 interface RestaurantLayoutProps {
   branchId: string;
@@ -30,12 +32,9 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const menuGridRef = useRef<HTMLDivElement>(null);
+  const [callWaiter, { isLoading: isCallingWaiter }] = useCallWaiterMutation();
 
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   useEffect(() => {
     if (!decoded) return;
@@ -63,9 +62,45 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
     };
   }, []);
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
-  )?.id;
+  // Check specific service object first (Service Scan), then fall back to list (Branch Scan)
+  const serviceId = decoded?.service?.type?.toLowerCase() === "restaurant"
+    ? decoded.service.id
+    : decoded?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "restaurant"
+      )?.id;
+
+  // Hide back button if this is a direct Service Scan (to prevent redirect loop)
+  const showBackButton = !!decoded?.services;
+
+  // Extract table info from payload
+  const tableData = (decoded as any)?.table;
+  const tableId = tableData?.id || (decoded as any)?.table_id;
+  const tableName = tableData?.name || (decoded as any)?.table_name;
+  const tableLabel = tableData?.label || (decoded as any)?.table_label;
+
+  const handleCallWaiter = async () => {
+    if (!tableId) {
+      return;
+    }
+
+    try {
+      // Use the mutation from restaurant.ts
+      await callWaiter({
+        tableId,
+        tableLabel: tableLabel , 
+        tableName: tableName ,
+      }).unwrap();
+
+      toast.success("Request Sent Successfully!", {
+        description: "A waiter has been notified and will be with you shortly.",
+      });
+    } catch (error) {
+      console.error("Error calling waiter:", error);
+      toast.error("Failed to call waiter", {
+        description: "Please try again.",
+      });
+    }
+  };
 
   // Fetch menu items
   const {
@@ -197,6 +232,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster position="top-center" richColors />
       {/* DYNAMIC STICKY HEADER */}
       <div className="sticky top-0 z-20 bg-card shadow-sm">
         {/* TOP BANNER (Alternating Height) */}
@@ -208,19 +244,19 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
-              <Link
-                href={`/branch/services/${serviceId}${
-                  payload ? `?payload=${payload}` : ""
-                }`}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="bg-white/20 hover:bg-white/30 flex-shrink-0"
+              {showBackButton && (
+                <Link
+                  href={`/branch/services/${serviceId}`}
                 >
-                  <ChevronLeft className="w-5 h-5 text-white" />
-                </Button>
-              </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white/20 hover:bg-white/30 flex-shrink-0"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-white" />
+                  </Button>
+                </Link>
+              )}
 
               <h1
                 className={`font-bold text-white transition-all duration-300 ease-in-out ${
@@ -287,6 +323,20 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                     <div className="w-1 h-4 bg-primary rounded-full" />
                     View Categories
                   </h2>
+
+                  {tableId && (
+                    <button
+                      onClick={handleCallWaiter}
+                      disabled={isCallingWaiter}
+                      className="w-full mb-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors text-white disabled:opacity-70"
+                    >
+                      <Bell className={`w-4 h-4 ${isCallingWaiter ? "animate-pulse" : ""}`} />
+                      <span className="text-sm font-medium">
+                        {isCallingWaiter ? "Calling..." : "Call Waiter"}
+                      </span>
+                    </button>
+                  )}
+
                   <div className="space-y-1">
                     {categories.map((category) => (
                       <button
@@ -308,7 +358,7 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
               {/* MENU GRID */}
               <div className="md:col-span-3" ref={menuGridRef}>
                 {/* MOBILE SIDEBAR TRIGGER - Sticky container */}
-                <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden">
+                <div className="sticky top-[140px] z-10 bg-background py-3 -my-3 md:hidden flex gap-2 overflow-x-auto">
                   <button
                     onClick={() => setIsSidebarOpen(true)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-colors"
@@ -318,6 +368,19 @@ export function RestaurantLayout({ branchId }: RestaurantLayoutProps) {
                       View Categories
                     </span>
                   </button>
+
+                  {tableId && (
+                    <button
+                      onClick={handleCallWaiter}
+                      disabled={isCallingWaiter}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors text-white disabled:opacity-70 whitespace-nowrap"
+                    >
+                      <Bell className={`w-4 h-4 ${isCallingWaiter ? "animate-pulse" : ""}`} />
+                      <span className="text-sm font-medium">
+                        {isCallingWaiter ? "Calling..." : "Call Waiter"}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="mb-4 mt-4 md:mt-0">

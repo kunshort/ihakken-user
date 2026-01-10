@@ -10,12 +10,11 @@ import { BedDouble, Wifi } from "lucide-react";
 interface RoomCardProps {
   room: AIChatRoomItem;
   branchId: string;
-  payload: string;
   className?: string;
 }
 
-export function RoomCard({ room, branchId, payload, className }: RoomCardProps) {
-  const href = `/branch/${branchId}/services/lodging/${room.id}${payload ? `?payload=${payload}` : ""}`;
+export function RoomCard({ room, branchId, className }: RoomCardProps) {
+  const href = `/branch/${branchId}/services/lodging/${room.id}`;
 
   return (
     <Link href={href} className="block">

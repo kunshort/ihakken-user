@@ -1,6 +1,7 @@
 export type WSResponse = {
   type: string;
   id?: string;
+  error?: string; // For error messages
   // Add known properties for different message types
   session_id?: string; // for connection_established
   message?: string; // for user_message echo

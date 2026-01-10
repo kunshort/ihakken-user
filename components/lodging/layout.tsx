@@ -5,15 +5,14 @@ import ErrorComponent from "@/components/shared/errorComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStaffUnits } from "@/hooks/useStaffUnits";
+import { usePayload } from "@/hooks/usePayload";
 import {
-  useDecodePayloadQuery,
   useGetAccommodationsQuery,
 } from "@/lib/api/lodging";
 import { Accommodation } from "@/lib/types/interfaces";
 import { skipToken } from "@reduxjs/toolkit/query/react";
 import { ChevronLeft, Phone, Search } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import EmptyContent from "../shared/noContent";
 import { AccommodationGrid } from "./accommodation-grid";
@@ -28,11 +27,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [callModalOpen, setCallModalOpen] = useState(false);
 
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   useEffect(() => {
     if (!decoded) return;
@@ -59,9 +54,14 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     };
   }, []);
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.serviceType?.toLowerCase() === "lodging"
-  )?.id;
+  const serviceId = decoded?.service?.type?.toLowerCase() === "lodging"
+    ? decoded.service.id
+    : decoded?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "lodging"
+      )?.id;
+
+  // Hide back button if this is a direct Service Scan (to prevent redirect loop)
+  const showBackButton = !!decoded?.services;
 
   const {
     data: accommodationsData,
@@ -93,7 +93,6 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
     });
   }, [accommodationsRaw, searchQuery]);
 
-  const [isRetrying, setIsRetrying] = useState(false);
   const handleRetry = () => {
     refetchAccommodations();
   };
@@ -120,9 +119,7 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
   // Check if search returned no results
   const hasNoSearchResults = searchQuery && filteredAccommodations.length === 0;
 
-  const backLink = `/branch/services/${serviceId}${
-    payload ? `?payload=${payload}` : ""
-  }`;
+  const backLink = `/branch/services/${serviceId}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,15 +134,17 @@ export function LodgingLayout({ branchId }: LodgingLayoutProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center p-4">
             <div className="flex w-full items-center gap-4">
-              <Link href={backLink}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="bg-white/20 hover:bg-white/30 shrink-0"
-                >
-                  <ChevronLeft className="w-5 h-5 text-white" />
-                </Button>
-              </Link>
+              {showBackButton && (
+                <Link href={backLink}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white/20 hover:bg-white/30 shrink-0"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-white" />
+                  </Button>
+                </Link>
+              )}
 
               <h1
                 className={`font-bold text-white transition-all duration-300 ease-in-out ${

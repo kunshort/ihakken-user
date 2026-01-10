@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
@@ -9,9 +9,9 @@ import AccommodationDetailsClient from "./accommodation-details-client";
 import { Accommodation } from "@/lib/types/interfaces";
 import {
   useGetAccommodationsQuery,
-  useDecodePayloadQuery,
   lodgingApi,
 } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 
 // Define proper types for the API response structure
 interface Floor {
@@ -24,13 +24,11 @@ interface AccommodationsResponse {
 
 export default function AccommodationDetailsPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
+  const { payload: decoded, isLoading: payloadLoading } = usePayload();
 
   const id = params.id as string;
   const branchId = params.branchId as string;
-  const payload = searchParams.get("payload") || "";
-  const { data: decoded, isLoading: payloadLoading } =
-    useDecodePayloadQuery(payload);
+  
   useEffect(() => {
     if (!decoded) return;
     if (decoded.token) localStorage.setItem("auth_token", decoded.token);
@@ -41,9 +39,13 @@ export default function AccommodationDetailsPage() {
       );
   }, [decoded]);
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.serviceType?.toLowerCase() === "lodging"
-  )?.id;
+   // Check specific service object first (Service Scan), then fall back to list (Branch Scan)
+  const serviceId = decoded?.service?.type?.toLowerCase() === "lodging"
+    ? decoded.service.id
+    : decoded?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "lodging"
+      )?.id;
+
 
   const {
     data: accommodationsData,
@@ -96,7 +98,6 @@ export default function AccommodationDetailsPage() {
         isLoading={isLoadingAccommodations || payloadLoading}
         error={error}
         serviceId={serviceId}
-        payload={payload}
         handleRetry={handleRetry}
       />
     </div>

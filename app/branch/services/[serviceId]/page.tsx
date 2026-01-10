@@ -1,41 +1,56 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { ServicesGrid } from "@/components/services-grid";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Service } from "@/lib/types/interfaces";
-import { useDecodePayloadQuery } from "@/lib/api/lodging";
+import { usePayload } from "@/hooks/usePayload";
 import { MapPin, Clock, Sparkles } from "lucide-react";
 
 // Transform decoded services to match ServicesGrid's expected format
 function transformServices(decodedServices: any[]): Service[] {
+  if (!decodedServices || !Array.isArray(decodedServices)) return [];
   return decodedServices.map((service) => ({
     id: service.id,
     name: service.name,
     title: service.name,
-    description: `Explore our ${service.name.toLowerCase()} service`,
+    description: `Explore our ${service.name?.toLowerCase() || "service"} service`,
     available: true,
-    slug: service.id.toLowerCase(),
-    type: service.serviceType,
-    service_type: service.serviceType,
+    slug: service.id?.toLowerCase(),
+    type: service.serviceType || service.type,
+    service_type: service.serviceType || service.type,
     icon: undefined,
     image: service.image,
   }));
 }
 
 export default function ServicePage() {
-  const searchParams = useSearchParams();
-  const payload = searchParams.get("payload") || "";
-
-  const { data: payloadData, error, isLoading } = useDecodePayloadQuery(payload);
+  const router = useRouter();
+  const { payload: payloadData, isLoading } = usePayload();
 
   const [transformedServices, setTransformedServices] = useState<Service[]>([]);
 
   useEffect(() => {
     if (payloadData) {
-      setTransformedServices(transformServices(payloadData.services));
+      // Handle both Branch Scan (services array) and Service Scan (single service object)
+      const servicesList = payloadData.services || (payloadData.service ? [payloadData.service] : []);
+      setTransformedServices(transformServices(servicesList));
     }
   }, [payloadData]);
+
+  // Handle redirects for service scans
+  useEffect(() => {
+    if (!isLoading && payloadData?.service && payloadData?.branch) {
+      const { type, id } = payloadData.service;
+      const branchId = payloadData.branch.id;
+
+      if (type?.toLowerCase() === "restaurant") {
+        router.push(`/branch/${branchId}/services/restaurant`);
+      } else if (type?.toLowerCase() === "lodging") {
+        router.push(`/branch/${branchId}/services/lodging`);
+      }
+    }
+  }, [payloadData, isLoading, router]);
 
   // Loading state
   if (isLoading) {
@@ -130,22 +145,6 @@ export default function ServicePage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {error && (
-          <div
-            className="bg-destructive/10 border border-destructive/30 text-destructive px-6 py-4 rounded-xl mb-8"
-            role="alert"
-          >
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">
-              {error && "status" in error && error.status
-                ? `Error ${error.status}: ${JSON.stringify(error.data)}`
-                : error && "message" in error
-                ? error.message
-                : "An unknown error occurred"}
-            </span>
-          </div>
-        )}
-
         {payloadData && transformedServices.length > 0 && (
           <div>
             {/* Section header */}
@@ -170,7 +169,7 @@ export default function ServicePage() {
           </div>
         )}
 
-        {payloadData && transformedServices.length === 0 && !error && (
+        {payloadData && transformedServices.length === 0 && (
           <div className="text-center py-16">
             <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-10 h-10 text-muted-foreground" />

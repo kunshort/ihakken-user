@@ -1,117 +1,76 @@
-// "use client";
+"use client";
 
-// import { Header } from "@/components/header";
-// import { Footer } from "@/components/footer";
-// import { useParams, useSearchParams } from "next/navigation";
-// import { useEffect } from "react";
-// import AccommodationDetailsClient from "@/app/branch/[branchId]/services/lodging/[id]/accommodation-details-client";
-// import {
-//   useGetAccommodationByIdQuery,
-//   useDecodePayloadQuery,
-// } from "@/lib/api/lodging";
-// import { Accommodation } from "@/lib/types/interfaces";
+import { useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { usePayload } from "@/hooks/usePayload";
 
-// export default function ItemDetailsPage() {
-//   const params = useParams();
-//   const searchParams = useSearchParams();
-//   const serviceId = params.serviceId as string;
-//   const itemId = params.itemId as string;
-//   const payload = searchParams.get("payload") || "";
+function ServiceRedirect() {
+  const router = useRouter();
+  const { payload, isLoading } = usePayload();
 
-//   const { data: decoded, isLoading: payloadLoading } =
-//     useDecodePayloadQuery(payload);
+  useEffect(() => {
+    // Wait for loading to finish and ensure we have a payload with service info
+    if (!isLoading && payload?.service && payload?.branch) {
+      const { type, id } = payload.service;
+      const branchId = payload.branch.id;
 
-//   useEffect(() => {
-//     if (!decoded) return;
-//     if (decoded.token) localStorage.setItem("auth_token", decoded.token);
-//     if ((decoded as any).device_fingerprint)
-//       localStorage.setItem(
-//         "device_fingerprint",
-//         (decoded as any).device_fingerprint
-//       );
-//   }, [decoded]);
+      if (type?.toLowerCase() === "restaurant") {
+        // Redirect to the restaurant menu page
+        // This handles both Service Scans and Table Scans
+        router.push(`/branch/${branchId}/services/restaurant`);
+      } else if (type?.toLowerCase() === "lodging") {
+        // Redirect to the accommodation page
+        router.push(`/branch/${branchId}/services/lodging`);
+      }
+    }
+  }, [payload, isLoading, router]);
 
-//   const branchId = decoded?.branch?.id || "";
+  // Determine loading text based on service type to match destination page
+  const loadingText = payload?.service?.type?.toLowerCase() === "lodging" 
+    ? "Loading accommodations..." 
+    : payload?.service?.type?.toLowerCase() === "restaurant"
+    ? "Loading menu items..."
+    : "Loading...";
 
-//   const {
-//     data: accommodation,
-//     isLoading,
-//     error,
-//   } = useGetAccommodationByIdQuery(
-//     branchId && itemId
-//       ? { branchId, accommodationId: itemId }
-//       : { branchId: "", accommodationId: "" },
-//     {
-//       skip: !branchId || !itemId,
-//     }
-//   );
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground">{loadingText}</p>
+        </div>
+      </div>
+    );
+  }
 
-//   if (payloadLoading || (!branchId && !payloadLoading)) {
-//     return (
-//       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
-//         <Header />
-//         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-//           <p className="text-muted-foreground ">
-//             Loading accommodation details...
-//           </p>
-//         </div>
-//         <Footer />
-//       </main>
-//     );
-//   }
+  // Error state if payload is missing or invalid
+  if (!payload?.service) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Invalid service scan.</p>
+          <p className="text-muted-foreground text-sm">Please try scanning the QR code again.</p>
+        </div>
+      </div>
+    );
+  }
 
-//   if (isLoading) {
-//     return (
-//       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
-//         <Header />
-//         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-//           <p className="text-muted-foreground">
-//             Loading accommodation details...
-//           </p>
-//         </div>
-//         <Footer />
-//       </main>
-//     );
-//   }
+  // Fallback while redirecting
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-muted-foreground">{loadingText}</p>
+      </div>
+    </div>
+  );
+}
 
-//   if (error || !accommodation) {
-//     return (
-//       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
-//         <Header />
-//         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-//           <p className="text-destructive">
-//             Failed to load accommodation details.
-//           </p>
-//         </div>
-//         <Footer />
-//       </main>
-//     );
-//   }
-
-//   if (serviceId === "lodging") {
-//     return (
-//       <main className="min-h-screen bg-linear-to-br from-white via-green-50 to-white">
-//         <Header />
-//         <AccommodationDetailsClient
-//           accommodation={accommodation}
-//           branchId={branchId}
-//           selectedImageDefault={
-//             accommodation.mainImage?.[0]?.url || "/placeholder.svg"
-//           }
-//         />
-//         <Footer />
-//       </main>
-//     );
-//   }
-//   return (
-//     <main className="min-h-screen">
-//       <Header />
-//       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-//         <p className="text-muted-foreground">Service details page</p>
-//       </div>
-//       <Footer />
-//     </main>
-//   );
-// }
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+      <ServiceRedirect />
+    </Suspense>
+  );
+}
