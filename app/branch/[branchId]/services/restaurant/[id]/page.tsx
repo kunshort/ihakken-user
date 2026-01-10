@@ -42,9 +42,12 @@ export default function MenuItemDetailsPage() {
     Record<string, number>
   >({});
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
-  )?.id;
+  // Check specific service object first (Service Scan), then fall back to list (Branch Scan)
+  const serviceId = decoded?.service?.type?.toLowerCase() === "restaurant"
+    ? decoded.service.id
+    : decoded?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "restaurant"
+      )?.id;
 
   const stableMenuQueryArg = useMemo(
     () => (serviceId ? { serviceId } : skipToken),

@@ -1,30 +1,11 @@
 import {
   createApi,
   FetchBaseQueryError,
-  skipToken,
 } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./base";
-import { MenuCategory, MenuCategoryResponse, MenuItem, ParentCategory } from "../types/interfaces";
+import { MenuCategory, MenuCategoryResponse, MenuItem } from "../types/interfaces";
 
 // ---------- TYPES ----------
-// export interface MenuItem {
-//   id: number;
-//   name: string;
-//   description: string;
-//   price: number;
-//   time: string;
-//   image: string;
-//   category: string;
-//   ingredients?: Array<{ id: number; name: string; emoji: string }>;
-//   addOns?: Array<{ id: number; name: string; price: number; image: string }>;
-//   toppings?: Array<{ id: number; name: string; price: number; image: string }>;
-//   complements?: Array<{
-//     id: number;
-//     name: string;
-//     price: number;
-//     image: string;
-//   }>;
-// }
 
 
 // ---------- ERROR WRAPPER ----------
@@ -113,6 +94,18 @@ export const restaurantApi = createApi({
         }
       },
     }),
+
+    // 5️⃣ CALL WAITER
+    callWaiter: builder.mutation<void, { tableId: string; tableLabel: string; tableName: string }>({
+      query: ({ tableId, tableLabel, tableName }) => ({
+        url: `/api/v1/restaurant/tables/${tableId}/requests/`,
+        method: "POST",
+        body: {
+          table_label: tableLabel,
+          table_name: tableName,
+        },
+      }),
+    }),
   }),
 });
 
@@ -121,4 +114,5 @@ export const {
   useGetMenuItemByIdQuery,
   useGetMenuCategoriesQuery,
   useSearchMenuItemsQuery,
+  useCallWaiterMutation,
 } = restaurantApi;

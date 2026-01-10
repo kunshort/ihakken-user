@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { ServicesGrid } from "@/components/services-grid";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useEffect, useState } from "react";
@@ -8,30 +9,48 @@ import { MapPin, Clock, Sparkles } from "lucide-react";
 
 // Transform decoded services to match ServicesGrid's expected format
 function transformServices(decodedServices: any[]): Service[] {
+  if (!decodedServices || !Array.isArray(decodedServices)) return [];
   return decodedServices.map((service) => ({
     id: service.id,
     name: service.name,
     title: service.name,
-    description: `Explore our ${service.name.toLowerCase()} service`,
+    description: `Explore our ${service.name?.toLowerCase() || "service"} service`,
     available: true,
-    slug: service.id.toLowerCase(),
-    type: service.serviceType,
-    service_type: service.serviceType,
+    slug: service.id?.toLowerCase(),
+    type: service.serviceType || service.type,
+    service_type: service.serviceType || service.type,
     icon: undefined,
     image: service.image,
   }));
 }
 
 export default function ServicePage() {
+  const router = useRouter();
   const { payload: payloadData, isLoading } = usePayload();
 
   const [transformedServices, setTransformedServices] = useState<Service[]>([]);
 
   useEffect(() => {
     if (payloadData) {
-      setTransformedServices(transformServices(payloadData.services));
+      // Handle both Branch Scan (services array) and Service Scan (single service object)
+      const servicesList = payloadData.services || (payloadData.service ? [payloadData.service] : []);
+      setTransformedServices(transformServices(servicesList));
     }
   }, [payloadData]);
+
+  // Handle redirects for service scans
+  useEffect(() => {
+    if (!isLoading && payloadData?.service && payloadData?.branch) {
+      const { type, id } = payloadData.service;
+      const branchId = payloadData.branch.id;
+
+      if (type?.toLowerCase() === "restaurant") {
+        router.push(`/branch/${branchId}/services/restaurant`);
+      } else if (type?.toLowerCase() === "lodging") {
+        router.push(`/branch/${branchId}/services/lodging`);
+      }
+    }
+  }, [payloadData, isLoading, router]);
 
   // Loading state
   if (isLoading) {

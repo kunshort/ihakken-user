@@ -39,9 +39,13 @@ export default function AccommodationDetailsPage() {
       );
   }, [decoded]);
 
-  const serviceId = decoded?.services.find(
-    (s: any) => s.serviceType?.toLowerCase() === "lodging"
-  )?.id;
+   // Check specific service object first (Service Scan), then fall back to list (Branch Scan)
+  const serviceId = decoded?.service?.type?.toLowerCase() === "lodging"
+    ? decoded.service.id
+    : decoded?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "lodging"
+      )?.id;
+
 
   const {
     data: accommodationsData,

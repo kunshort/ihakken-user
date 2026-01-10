@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import RestaurantLayout from "@/components/restaurant/layout";
 import { AiChatAssistant } from "@/components/shared/AiChatAssistant";
 import { usePayload } from "@/hooks/usePayload";
@@ -30,9 +29,12 @@ export default function RestaurantPage() {
   }
 
   // Extract the restaurant service id from the decoded payload
-  const restaurantServiceId = payloadData?.services?.find(
-    (s: any) => s.serviceType?.toLowerCase() === "restaurant"
-  )?.id;
+  // Check specific service object first (Service Scan), then fall back to list (Branch Scan)
+  const restaurantServiceId = payloadData?.service?.type?.toLowerCase() === "restaurant"
+    ? payloadData.service.id
+    : payloadData?.services?.find(
+        (s: any) => s.serviceType?.toLowerCase() === "restaurant"
+      )?.id;
 
   if (!restaurantServiceId) {
     return (
